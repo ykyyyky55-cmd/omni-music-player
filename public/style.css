@@ -309,43 +309,123 @@ body {
     box-shadow: 0 0 10px #1db954, 0 0 4px #fff;
 }
 
-/* 2. 우측 앨범자켓 스탠드 및 정보 */
+/* 33 / 45 RPM 속도 선택 스위치 */
+.rpm-selector-switch {
+    position: absolute;
+    right: 90px;
+    bottom: 58px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 15;
+    background: rgba(18, 18, 18, 0.85);
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #333;
+}
+
+.rpm-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #888;
+    letter-spacing: 0.5px;
+}
+
+.rpm-btn-group {
+    display: flex;
+    gap: 4px;
+}
+
+.rpm-btn {
+    background: #252525;
+    border: 1px solid #444;
+    color: #aaa;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.rpm-btn:hover {
+    color: #fff;
+    border-color: #666;
+}
+
+.rpm-btn.active {
+    background: #1db954;
+    color: #000;
+    border-color: #1db954;
+    box-shadow: 0 0 8px rgba(29, 185, 84, 0.4);
+}
+
+/* 2. 우측: 각진 실제 LP 자켓 슬리브 및 정보 */
 .album-jacket-stand {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 28px;
+    gap: 24px;
     flex: 1;
-    max-width: 420px;
+    max-width: 440px;
 }
 
-.jacket-frame {
+/* 각진 실제 LP 카드보드 자켓 프레임 */
+.jacket-frame-lp {
     position: relative;
-    width: 280px;
-    height: 280px;
-    border-radius: 14px;
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.8);
+    width: 290px;
+    height: 290px;
+    border-radius: 2px; /* LP 슬리브 특유의 칼같은 각진 사각형 */
+    background: #181818;
+    box-shadow: 
+        -4px 4px 10px rgba(0, 0, 0, 0.6),
+        0 18px 40px rgba(0, 0, 0, 0.85),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.1);
     flex-shrink: 0;
-    perspective: 900px;
+    perspective: 1000px;
+    border-left: 3px solid #282828; /* 두꺼운 카드보드 책등(스파인) */
+    transition: transform 0.3s ease;
 }
+
+.jacket-frame-lp:hover {
+    transform: rotateY(-6deg) scale(1.02);
+}
+
+/* LP 자켓 책등(Spine) 입체 하이라이트 */
+.sleeve-spine {
+    position: absolute;
+    left: -4px;
+    top: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(to right, #111, #444, #222);
+    border-radius: 1px 0 0 1px;
+}
+
+/* LP 자켓 상/하단 압축 접합선(Seam) 디테일 */
+.sleeve-edge-top, .sleeve-edge-bottom {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+}
+.sleeve-edge-top { top: 0; }
+.sleeve-edge-bottom { bottom: 0; }
 
 .hero-jacket-img {
     width: 100%;
     height: 100%;
-    border-radius: 12px;
+    border-radius: 2px; /* 완벽한 각진 자켓 */
     object-fit: cover;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    transition: transform 0.3s;
-}
-
-.hero-jacket-img:hover {
-    transform: rotateY(-8deg) scale(1.03);
+    display: block;
 }
 
 .hero-jacket-fallback {
     width: 100%;
     height: 100%;
-    border-radius: 12px;
+    border-radius: 2px;
     background-color: #242424;
     display: flex;
     align-items: center;
@@ -354,16 +434,17 @@ body {
     color: #444;
 }
 
+/* 자켓 우측 슬롯에서 살짝 빼꼼 나온 바이닐 레코드 */
 .jacket-vinyl-peek {
     position: absolute;
     top: 15px;
-    right: -25px;
-    width: 250px;
-    height: 250px;
+    right: -28px;
+    width: 260px;
+    height: 260px;
     border-radius: 50%;
-    background: radial-gradient(circle, #222 30%, #000 80%);
+    background: radial-gradient(circle, #222 30%, #050505 80%);
     z-index: -1;
-    box-shadow: 6px 6px 16px rgba(0, 0, 0, 0.6);
+    box-shadow: 6px 6px 16px rgba(0, 0, 0, 0.7);
     border: 1px solid #333;
 }
 
@@ -371,6 +452,133 @@ body {
     display: flex;
     flex-direction: column;
     width: 100%;
+}
+
+.hero-badge-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.badge-rpm {
+    background-color: #ff9800;
+    color: #000;
+    font-weight: 800;
+}
+
+/* 아날로그 소리 설정 버튼 */
+.sound-setting-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ddd;
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: 0.2s;
+}
+
+.sound-setting-btn:hover {
+    background: #1db954;
+    color: #000;
+    border-color: #1db954;
+}
+
+/* 소리 설정 모달 내부 컨트롤 */
+.sound-setting-group {
+    background: #1c1c1c;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 14px;
+    border: 1px solid #333;
+}
+
+.sound-setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sound-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.sound-title i {
+    color: #1db954;
+}
+
+.sound-sub {
+    font-size: 12px;
+    color: #888;
+}
+
+.sound-slider-wrap {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sound-slider-wrap label {
+    font-size: 12px;
+    color: #aaa;
+}
+
+/* 토글 스위치 컴포넌트 */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-switch .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #444;
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.toggle-switch .slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.toggle-switch input:checked + .slider {
+    background-color: #1db954;
+}
+
+.toggle-switch input:checked + .slider:before {
+    transform: translateX(20px);
 }
 
 .hero-badge-wrap {

@@ -42,6 +42,31 @@ const vinylLabelImg = document.getElementById('vinyl-label-img');
 const vinylLabelFallback = document.getElementById('vinyl-label-fallback');
 const tonearmAssembly = document.getElementById('tonearm-assembly');
 const turntableLamp = document.getElementById('turntable-lamp');
+const badgeRpmDisplay = document.getElementById('badge-rpm-display');
+const btnRpm33 = document.getElementById('btn-rpm-33');
+const btnRpm45 = document.getElementById('btn-rpm-45');
+
+// 소리 설정 모달 및 컨트롤 요소
+const btnSoundSettings = document.getElementById('btn-sound-settings');
+const soundModal = document.getElementById('sound-modal');
+const btnCloseSound = document.getElementById('btn-close-sound');
+const btnApplySound = document.getElementById('btn-apply-sound');
+const toggleCrackle = document.getElementById('toggle-crackle');
+const sliderCrackleVol = document.getElementById('slider-crackle-vol');
+const crackleVolLabel = document.getElementById('crackle-vol-label');
+const toggleWarmEq = document.getElementById('toggle-warm-eq');
+
+// RPM 상태 관리 (기본 33 RPM: 1.8초, 45 RPM: 1.33초)
+let currentRpm = 33;
+let currentRpmDuration = '1.8s';
+
+// Web Audio API 아날로그 바이닐 사운드 엔진 변수
+let audioCtx = null;
+let crackleNode = null;
+let crackleGain = null;
+let warmLowFilter = null;
+let warmHighFilter = null;
+let isAudioEngineInit = false;
 
 // 1. YouTube IFrame API 준비 완료 콜백 (글로벌 등록)
 window.onYouTubeIframeAPIReady = function() {
@@ -316,6 +341,145 @@ const TONEARM_TOTAL_SPAN = TONEARM_END_ANGLE - TONEARM_START_ANGLE; // 7.5도 �
 let tonearmMoveTimer = null;
 let currentTrackAngleRange = { startAngle: 16.5, endAngle: 24.0 };
 
+// 33 / 45 RPM 속도 전환 함수
+function setTurntableSpeed(rpm) {
+    currentRpm = rpm;
+    currentRpmDuration = rpm === 45 ? '1.33s' : '1.8s';
+    btnRpm33.classList.toggle('active', rpm === 33);
+    btnRpm45.classList.toggle('active', rpm === 45);
+    badgeRpmDisplay.textContent = rpm === 45 ? '45 RPM' : '33⅓ RPM';
+    if (vinylRecord) {
+        vinylRecord.style.animationDuration = currentRpmDuration;
+    }
+}
+
+btnRpm33.addEventListener('click', () => setTurntableSpeed(33));
+btnRpm45.addEventListener('click', () => setTurntableSpeed(45));
+
+// Web Audio API 아날로그 바이닐 사운드 엔진 초기화
+function initAnalogSoundEngine() {
+    if (isAudioEngineInit) return;
+    try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass();
+
+        // 1. 바이닐 표면 크랙클 노이즈 버퍼 생성 (4초 분량 무한 루프)
+        const bufferSize = audioCtx.sampleRate * 4;
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        let b0 = 0, b1 = 0, b2 = 0;
+
+        for (let i = 0; i < bufferSize; i++) {
+            const white = Math.random() * 2 - 1;
+            b0 = 0.99 * b0 + white * 0.04;
+            b1 = 0.95 * b1 + white * 0.08;
+            b2 = 0.85 * b2 + white * 0.15;
+            let val = (b0 + b1 + b2) * 0.05;
+
+            // 랜덤 간격 바이닐 스파이크 팝 (타닥거리는 LP 특유의 바늘 잡음)
+            if (Math.random() < 0.0016) {
+                val += (Math.random() > 0.5 ? 1 : -1) * (0.3 + Math.random() * 0.4);
+            }
+            output[i] = val;
+        }
+
+        crackleNode = audioCtx.createBufferSource();
+        crackleNode.buffer = noiseBuffer;
+        crackleNode.loop = true;
+
+        crackleGain = audioCtx.createGain();
+        crackleGain.gain.value = 0; // 초기 볼륨 0
+
+        const bandpass = audioCtx.createBiquadFilter();
+        bandpass.type = 'bandpass';
+        bandpass.frequency.value = 2400;
+        bandpass.Q.value = 0.85;
+
+        crackleNode.connect(bandpass);
+        bandpass.connect(crackleGain);
+        crackleGain.connect(audioCtx.destination);
+        crackleNode.start(0);
+
+        // 2. 로컬 오디오용 아날로그 웜 톤 EQ 필터 (Warm Tube Filter)
+        const mediaSource = audioCtx.createMediaElementSource(audioPlayer);
+
+        warmLowFilter = audioCtx.createBiquadFilter();
+        warmLowFilter.type = 'lowshelf';
+        warmLowFilter.frequency.value = 200;
+        warmLowFilter.gain.value = toggleWarmEq.checked ? 3.5 : 0;
+
+        warmHighFilter = audioCtx.createBiquadFilter();
+        warmHighFilter.type = 'lowpass';
+        warmHighFilter.frequency.value = toggleWarmEq.checked ? 8500 : 20000;
+        warmHighFilter.Q.value = 0.7;
+
+        mediaSource.connect(warmLowFilter);
+        warmLowFilter.connect(warmHighFilter);
+        warmHighFilter.connect(audioCtx.destination);
+
+        isAudioEngineInit = true;
+    } catch (e) {
+        console.warn('아날로그 사운드 엔진 초기화 생략:', e);
+    }
+}
+
+// 바이닐 크랙클 잡음 재생 함수
+function startVinylCrackle() {
+    if (!isAudioEngineInit) initAnalogSoundEngine();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+
+    if (crackleGain && toggleCrackle.checked) {
+        const targetVol = parseFloat(sliderCrackleVol.value);
+        crackleGain.gain.cancelScheduledValues(audioCtx.currentTime);
+        crackleGain.gain.setValueAtTime(crackleGain.gain.value, audioCtx.currentTime);
+        crackleGain.gain.linearRampToValueAtTime(targetVol, audioCtx.currentTime + 0.8);
+    }
+}
+
+// 바이닐 크랙클 잡음 정지 함수
+function stopVinylCrackle() {
+    if (crackleGain && audioCtx) {
+        crackleGain.gain.cancelScheduledValues(audioCtx.currentTime);
+        crackleGain.gain.setValueAtTime(crackleGain.gain.value, audioCtx.currentTime);
+        crackleGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
+    }
+}
+
+// 소리 설정 이벤트 핸들러
+btnSoundSettings.addEventListener('click', () => {
+    soundModal.classList.add('open');
+});
+
+btnCloseSound.addEventListener('click', () => {
+    soundModal.classList.remove('open');
+});
+
+btnApplySound.addEventListener('click', () => {
+    soundModal.classList.remove('open');
+});
+
+toggleCrackle.addEventListener('change', () => {
+    if (isPlaying) {
+        toggleCrackle.checked ? startVinylCrackle() : stopVinylCrackle();
+    }
+});
+
+sliderCrackleVol.addEventListener('input', () => {
+    const val = parseFloat(sliderCrackleVol.value);
+    crackleVolLabel.textContent = `${Math.round(val * 100)}%`;
+    if (crackleGain && isPlaying && toggleCrackle.checked) {
+        crackleGain.gain.setValueAtTime(val, audioCtx.currentTime);
+    }
+});
+
+toggleWarmEq.addEventListener('change', () => {
+    if (warmLowFilter && warmHighFilter && audioCtx) {
+        const isWarm = toggleWarmEq.checked;
+        warmLowFilter.gain.setValueAtTime(isWarm ? 3.5 : 0, audioCtx.currentTime);
+        warmHighFilter.frequency.setValueAtTime(isWarm ? 8500 : 20000, audioCtx.currentTime);
+    }
+});
+
 // 현재 곡이 속한 동일 앨범의 연속 트랙 정보 계산 함수
 function getAlbumGroupInfo() {
     if (!currentPlaylist || currentPlaylist.length === 0 || currentIndex < 0) {
@@ -325,12 +489,10 @@ function getAlbumGroupInfo() {
     const cur = currentPlaylist[currentIndex];
     const albumName = cur.album ? cur.album.trim().toLowerCase() : null;
 
-    // 앨범 정보가 없거나 기본값인 경우 단일 곡으로 취급
     if (!albumName || albumName === '알 수 없는 앨범' || albumName === '온라인 스트리밍') {
         return { indexInAlbum: 0, totalInAlbum: 1 };
     }
 
-    // 연속된 동일 앨범 구간 탐색 (앞뒤)
     let startIdx = currentIndex;
     while (startIdx > 0 && currentPlaylist[startIdx - 1].album && currentPlaylist[startIdx - 1].album.trim().toLowerCase() === albumName) {
         startIdx--;
@@ -347,7 +509,7 @@ function getAlbumGroupInfo() {
     return { indexInAlbum, totalInAlbum };
 }
 
-// 현재 곡의 톤암 이동 각도 범위 계산 (동일 앨범인 경우 속도를 늦춰 전체 곡에 걸쳐 이동)
+// 현재 곡의 톤암 이동 각도 범위 계산
 function calculateTrackAngleRange() {
     const { indexInAlbum, totalInAlbum } = getAlbumGroupInfo();
     const trackSpan = TONEARM_TOTAL_SPAN / totalInAlbum;
@@ -356,30 +518,36 @@ function calculateTrackAngleRange() {
     return { startAngle, endAngle };
 }
 
-// 톤암을 먼저 LP판으로 이동시킨 후, 안착 시점에 LP판 회전과 음악을 동시에 시작하는 시동 함수
+// 톤암 안착 시점에 LP판 회전과 음악, 아날로그 사운드를 동시에 시작하는 시동 함수
 function startTurntableAndPlay(track) {
     if (tonearmMoveTimer) clearTimeout(tonearmMoveTimer);
 
-    // 1. 초기 상태: 전원 LED는 켜지지만, LP판은 톤암이 안착할 때까지 정지 유지
-    if (turntableLamp) turntableLamp.classList.add('active');
-    if (vinylRecord) vinylRecord.classList.remove('spinning');
+    // 1. 오디오 컨텍스트 사용자 제스처 활성화
+    if (!isAudioEngineInit) initAnalogSoundEngine();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
 
-    // 2. 현재 트랙의 각도 범위 산출 (더 왼쪽으로 놓이도록 16.5도 기준)
+    // 2. 초기 상태: 전원 LED는 켜지고 LP판은 톤암이 안착할 때까지 정지
+    if (turntableLamp) turntableLamp.classList.add('active');
+    if (vinylRecord) {
+        vinylRecord.classList.remove('spinning');
+        vinylRecord.style.animationDuration = currentRpmDuration;
+    }
+
+    // 3. 현재 트랙의 각도 범위 산출 (16.5도 기준)
     currentTrackAngleRange = calculateTrackAngleRange();
     const targetStart = currentTrackAngleRange.startAngle;
 
-    // 3. 톤암을 먼저 LP판 시작 트랙 위로 이동 (1.2초간 이동)
+    // 4. 톤암을 먼저 LP판 시작 트랙 위로 이동
     if (tonearmAssembly) {
         tonearmAssembly.style.transition = 'transform 1.2s cubic-bezier(0.25, 1, 0.5, 1)';
         tonearmAssembly.style.transform = `rotate(${targetStart}deg)`;
     }
 
-    // 4. 톤암이 LP판 위에 완전히 올라간 후(1.2초 뒤): LP판 회전 시작 및 음악 동시 재생!
+    // 5. 톤암이 LP판 위에 완전히 올라간 후(1.2초 뒤): LP판 회전 시작, 바이닐 잡음 및 음악 동시 재생!
     tonearmMoveTimer = setTimeout(() => {
-        // LP판 회전 시작!
         if (vinylRecord) vinylRecord.classList.add('spinning');
+        startVinylCrackle(); // LP 특유의 아날로그 크랙클 바늘 잡음 시작
 
-        // 음악 스트리밍 재생 시작!
         if (track.type === 'local') {
             if (ytPlayer && isYtReady && ytPlayer.pauseVideo) {
                 ytPlayer.pauseVideo();
@@ -463,7 +631,8 @@ function togglePlayPause() {
         isPlaying = false;
         if (tonearmMoveTimer) clearTimeout(tonearmMoveTimer);
 
-        // 일시정지 시: 톤암을 레스트(0도)로 복귀하고 LP 회전 정지
+        // 일시정지 시: 톤암을 레스트(0도)로 복귀하고 LP 회전 및 크랙클 잡음 정지
+        stopVinylCrackle();
         if (tonearmAssembly) {
             tonearmAssembly.style.transition = 'transform 1.2s cubic-bezier(0.25, 1, 0.5, 1)';
             tonearmAssembly.style.transform = `rotate(${TONEARM_REST_ANGLE}deg)`;
