@@ -19,6 +19,7 @@
             <nav class="nav-menu">
                 <button class="nav-item active" data-tab="local"><i class="fa-solid fa-hard-drive"></i> 내 저장소</button>
                 <button class="nav-item" data-tab="streaming"><i class="fa-brands fa-youtube"></i> 유튜브 / 웹</button>
+                <button class="nav-item" data-tab="services"><i class="fa-solid fa-globe"></i> 음원 사이트</button>
                 <button class="nav-item" data-tab="frequent"><i class="fa-solid fa-fire"></i> 자주 듣는 음악</button>
                 <button class="nav-item" data-tab="favorites"><i class="fa-solid fa-heart"></i> 즐겨찾기</button>
             </nav>
@@ -56,6 +57,71 @@
                 <div class="streaming-quick-list">
                     <h3>인기 추천 플레이리스트</h3>
                     <div class="quick-cards" id="quick-cards"></div>
+                </div>
+            </section>
+
+            <!-- 탭 3: 공식 음원 사이트 접속 및 로그인 허브 -->
+            <section id="tab-services" class="tab-pane">
+                <header class="section-header">
+                    <h2>음원 스트리밍 사이트 연동</h2>
+                    <p class="sub-text">각 음원 사이트의 공식 웹 플레이어에 접속하여 로그인하고 음악을 들으실 수 있습니다.</p>
+                </header>
+                <div class="services-grid">
+                    <!-- 유튜브 뮤직 카드 -->
+                    <div class="service-card yt-music">
+                        <div class="service-header">
+                            <i class="fa-brands fa-youtube"></i>
+                            <h3>YouTube Music</h3>
+                        </div>
+                        <p class="service-desc">구글 계정으로 로그인하여 나만의 맞춤 재생목록과 믹스를 즐기세요.</p>
+                        <div class="service-actions">
+                            <button class="service-launch-btn" data-url="https://music.youtube.com">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> 플레이어 열기 & 로그인
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 멜론 카드 -->
+                    <div class="service-card melon">
+                        <div class="service-header">
+                            <i class="fa-solid fa-record-vinyl"></i>
+                            <h3>Melon (멜론)</h3>
+                        </div>
+                        <p class="service-desc">카카오/멜론 계정으로 로그인하여 TOP 100 차트 및 스트리밍을 이용하세요.</p>
+                        <div class="service-actions">
+                            <button class="service-launch-btn" data-url="https://www.melon.com">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> 플레이어 열기 & 로그인
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 벅스 카드 -->
+                    <div class="service-card bugs">
+                        <div class="service-header">
+                            <i class="fa-solid fa-compact-disc"></i>
+                            <h3>Bugs (벅스)</h3>
+                        </div>
+                        <p class="service-desc">페이코/벅스 계정으로 로그인하여 고음질 FLAC 및 인기 음악을 감상하세요.</p>
+                        <div class="service-actions">
+                            <button class="service-launch-btn" data-url="https://music.bugs.co.kr">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> 플레이어 열기 & 로그인
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 타이달 카드 -->
+                    <div class="service-card tidal">
+                        <div class="service-header">
+                            <i class="fa-solid fa-wave-square"></i>
+                            <h3>Tidal (타이달)</h3>
+                        </div>
+                        <p class="service-desc">Tidal 계정으로 로그인하여 Hi-Fi 및 Master 고음질 스트리밍을 즐기세요.</p>
+                        <div class="service-actions">
+                            <button class="service-launch-btn" data-url="https://listen.tidal.com">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> 플레이어 열기 & 로그인
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </section>
 

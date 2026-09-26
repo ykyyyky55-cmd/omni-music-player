@@ -432,3 +432,21 @@ async function castToDlnaDevice(deviceName) {
     }
 }
 
+// 15. 음원 사이트 공식 웹 플레이어 팝업 런처
+document.querySelectorAll('.service-launch-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const targetUrl = btn.getAttribute('data-url');
+        // 세션 및 로그인이 유지되는 독립 팝업 윈도우 생성
+        const width = 1200;
+        const height = 800;
+        const left = (window.screen.width - width) / 2;
+        const top = (window.screen.height - height) / 2;
+        
+        window.open(
+            targetUrl,
+            '_blank',
+            `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+        );
+    });
+});
+
