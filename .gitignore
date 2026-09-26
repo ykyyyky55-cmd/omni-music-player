@@ -1,0 +1,9 @@
+# 종속성 모듈 제외
+node_modules/
+
+# 로컬 사용자 재생 통계 및 설정 파일 제외
+userData.json
+
+# 로그 및 시스템 파일 제외
+*.log
+.DS_Store

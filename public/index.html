@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omni Music Player - 통합 음악 플레이어</title>
+    <!-- 외부 스타일 및 아이콘 폰트 연결 -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 사이드바 메뉴 -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-music"></i>
+                <h2>Omni Music</h2>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="local"><i class="fa-solid fa-hard-drive"></i> 내 저장소</button>
+                <button class="nav-item" data-tab="streaming"><i class="fa-brands fa-youtube"></i> 유튜브 / 웹</button>
+                <button class="nav-item" data-tab="frequent"><i class="fa-solid fa-fire"></i> 자주 듣는 음악</button>
+                <button class="nav-item" data-tab="favorites"><i class="fa-solid fa-heart"></i> 즐겨찾기</button>
+            </nav>
+        </aside>
+
+        <!-- 메인 콘텐츠 영역 -->
+        <main class="main-content">
+            <!-- 탭 1: 내 저장소 -->
+            <section id="tab-local" class="tab-pane active">
+                <header class="section-header">
+                    <h2>내 저장소 음악</h2>
+                    <div class="search-bar-wrapper">
+                        <input type="text" id="local-path-input" placeholder="폴더 경로 (기본: 내 음악 폴더)">
+                        <button id="btn-scan" class="primary-btn"><i class="fa-solid fa-folder-open"></i> 스캔</button>
+                    </div>
+                </header>
+                <div class="track-list" id="local-track-list">
+                    <p class="empty-msg">스캔 버튼을 눌러 로컬 음원을 불러오세요.</p>
+                </div>
+            </section>
+
+            <!-- 탭 2: 스트리밍 (유튜브 / 링크) -->
+            <section id="tab-streaming" class="tab-pane">
+                <header class="section-header">
+                    <h2>유튜브 및 웹 음원 스트리밍</h2>
+                    <div class="search-bar-wrapper">
+                        <input type="text" id="stream-url-input" placeholder="유튜브 링크 또는 영상 ID 입력 (예: https://youtu.be/...)" />
+                        <button id="btn-add-stream" class="primary-btn"><i class="fa-solid fa-play"></i> 재생 추가</button>
+                    </div>
+                </header>
+                <!-- 유튜브 IFrame 임베드 컨테이너 -->
+                <div class="video-container">
+                    <div id="youtube-player"></div>
+                </div>
+                <div class="streaming-quick-list">
+                    <h3>인기 추천 플레이리스트</h3>
+                    <div class="quick-cards" id="quick-cards"></div>
+                </div>
+            </section>
+
+            <!-- 탭 3: 자주 듣는 음악 -->
+            <section id="tab-frequent" class="tab-pane">
+                <header class="section-header">
+                    <h2>자주 듣는 음악 (Top Played)</h2>
+                    <p class="sub-text">내가 가장 많이 들은 곡들을 모아서 연속 재생합니다.</p>
+                </header>
+                <div class="track-list" id="frequent-track-list"></div>
+            </section>
+
+            <!-- 탭 4: 즐겨찾기 -->
+            <section id="tab-favorites" class="tab-pane">
+                <header class="section-header">
+                    <h2>즐겨찾기</h2>
+                </header>
+                <div class="track-list" id="favorites-track-list"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 하단 통합 플레이어 바 -->
+    <footer class="player-bar">
+        <div class="track-info">
+            <div class="track-badge" id="player-source-badge">LOCAL</div>
+            <div class="track-text">
+                <h4 id="player-title">선택된 곡 없음</h4>
+                <p id="player-sub">재생할 곡을 선택해주세요</p>
+            </div>
+            <button class="icon-btn" id="btn-favorite-toggle" title="즐겨찾기 추가/해제">
+                <i class="fa-regular fa-heart"></i>
+            </button>
+        </div>
+
+        <div class="player-controls">
+            <div class="control-buttons">
+                <button class="icon-btn" id="btn-prev"><i class="fa-solid fa-backward-step"></i></button>
+                <button class="icon-btn play-circle" id="btn-play-pause"><i class="fa-solid fa-play"></i></button>
+                <button class="icon-btn" id="btn-next"><i class="fa-solid fa-forward-step"></i></button>
+            </div>
+            <div class="progress-bar-container">
+                <span id="current-time">0:00</span>
+                <input type="range" id="seek-bar" value="0" min="0" max="100">
+                <span id="total-time">0:00</span>
+            </div>
+        </div>
+
+        <div class="player-extras">
+            <i class="fa-solid fa-volume-high"></i>
+            <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.8">
+        </div>
+    </footer>
+
+    <!-- 로컬 재생용 숨김 오디오 엘리먼트 -->
+    <audio id="audio-player"></audio>
+
+    <!-- 유튜브 IFrame API 로드 -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <!-- 애플리케이션 스크립트 로드 -->
+    <script src="app.js"></script>
+</body>
+</html>
