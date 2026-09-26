@@ -23,7 +23,7 @@ const totalTimeSpan = document.getElementById('total-time');
 const volumeSlider = document.getElementById('volume-slider');
 const btnFavToggle = document.getElementById('btn-favorite-toggle');
 
-// 전용 '지금 재생 중' Hero 화면 DOM 요소
+// 전용 '지금 재생 중' Hero 화면 및 LP 턴테이블 DOM 요소
 const heroCoverImg = document.getElementById('hero-cover-img');
 const heroCoverFallback = document.getElementById('hero-cover-fallback');
 const heroTitle = document.getElementById('hero-title');
@@ -35,6 +35,13 @@ const heroBtnPrev = document.getElementById('hero-btn-prev');
 const heroBtnNext = document.getElementById('hero-btn-next');
 const queueCarousel = document.getElementById('nowplaying-queue-carousel');
 const queueCountText = document.getElementById('queue-count-text');
+
+// LP 턴테이블 및 톤암 관련 요소
+const vinylRecord = document.getElementById('vinyl-record');
+const vinylLabelImg = document.getElementById('vinyl-label-img');
+const vinylLabelFallback = document.getElementById('vinyl-label-fallback');
+const tonearmAssembly = document.getElementById('tonearm-assembly');
+const turntableLamp = document.getElementById('turntable-lamp');
 
 // 1. YouTube IFrame API 준비 완료 콜백 (글로벌 등록)
 window.onYouTubeIframeAPIReady = function() {
@@ -226,6 +233,7 @@ async function playTrack(track) {
     heroSourceBadge.textContent = track.type.toUpperCase();
     heroSourceBadge.className = `track-badge ${track.type === 'local' ? 'badge-local' : 'badge-youtube'}`;
 
+    // 1. 우측 앨범 자켓 이미지 바인딩
     if (track.coverUrl) {
         heroCoverImg.src = track.coverUrl;
         heroCoverImg.style.display = 'block';
@@ -237,6 +245,27 @@ async function playTrack(track) {
     } else {
         heroCoverImg.style.display = 'none';
         heroCoverFallback.style.display = 'flex';
+    }
+
+    // 2. LP판 중앙 라벨에 앨범 사진 적용 및 턴테이블 안착 애니메이션 트리거
+    if (vinylRecord) {
+        // 애니메이션 클래스 리셋하여 다시 올려지는 모션 실행
+        vinylRecord.classList.remove('placing');
+        void vinylRecord.offsetWidth; // 리플로우 강제 트리거
+        vinylRecord.classList.add('placing');
+
+        if (track.coverUrl) {
+            vinylLabelImg.src = track.coverUrl;
+            vinylLabelImg.style.display = 'block';
+            vinylLabelFallback.style.display = 'none';
+            vinylLabelImg.onerror = () => {
+                vinylLabelImg.style.display = 'none';
+                vinylLabelFallback.style.display = 'block';
+            };
+        } else {
+            vinylLabelImg.style.display = 'none';
+            vinylLabelFallback.style.display = 'block';
+        }
     }
 
     // 하단 다른 곡 목록 (대기열) 캐러셀 갱신
@@ -336,10 +365,28 @@ heroBtnPlay.addEventListener('click', togglePlayPause);
 heroBtnNext.addEventListener('click', playNextTrack);
 heroBtnPrev.addEventListener('click', playPrevTrack);
 
+// LP 레코드판 클릭 시 재생/일시정지 토글
+if (vinylRecord) {
+    vinylRecord.addEventListener('click', togglePlayPause);
+}
+
+// 재생 상태에 따라 톤암 이동 및 LP판 회전 제어
 function updatePlayPauseIcon() {
     const playIcon = isPlaying ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play"></i>';
     btnPlayPause.innerHTML = playIcon;
     heroBtnPlay.innerHTML = playIcon;
+
+    if (isPlaying) {
+        // 톤암이 LP판 위로 내려앉고 바이닐이 회전 시작
+        if (tonearmAssembly) tonearmAssembly.classList.add('active');
+        if (vinylRecord) vinylRecord.classList.add('spinning');
+        if (turntableLamp) turntableLamp.classList.add('active');
+    } else {
+        // 톤암이 원위치로 복귀하고 바이닐 회전 정지
+        if (tonearmAssembly) tonearmAssembly.classList.remove('active');
+        if (vinylRecord) vinylRecord.classList.remove('spinning');
+        if (turntableLamp) turntableLamp.classList.remove('active');
+    }
 }
 
 // 8. 이전곡 / 다음곡 이동
@@ -604,7 +651,14 @@ window.addEventListener('DOMContentLoaded', async () => {
                 heroCoverImg.src = first.coverUrl;
                 heroCoverImg.style.display = 'block';
                 heroCoverFallback.style.display = 'none';
+
+                if (vinylLabelImg) {
+                    vinylLabelImg.src = first.coverUrl;
+                    vinylLabelImg.style.display = 'block';
+                    vinylLabelFallback.style.display = 'none';
+                }
             }
+            currentTrack = first;
             updateQueueCarousel();
         }
     } catch (e) {

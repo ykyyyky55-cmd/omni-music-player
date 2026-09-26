@@ -113,95 +113,346 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* 가운데 큰 플레이어 창 (Hero 섹션) */
-.nowplaying-hero {
+/* 가운데 큰 플레이어 창 (LP 턴테이블 모드) */
+.nowplaying-hero.turntable-mode {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 50px;
-    padding: 30px 20px 40px;
-    background: radial-gradient(circle at center, rgba(35, 45, 40, 0.6) 0%, rgba(18, 18, 18, 0.9) 80%);
-    border-radius: 16px;
-    border: 1px solid #282828;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+    gap: 40px;
+    padding: 36px 30px;
+    background: radial-gradient(circle at 40% 50%, #222222 0%, #121212 100%);
+    border-radius: 20px;
+    border: 1px solid #2d2d2d;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
     margin-bottom: 30px;
-}
-
-.hero-cover-container {
-    width: 280px;
-    height: 280px;
-    border-radius: 16px;
+    position: relative;
     overflow: hidden;
-    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6);
-    flex-shrink: 0;
-    background-color: #222;
 }
 
-.hero-cover {
+/* 1. 턴테이블 데크 본체 */
+.turntable-deck {
+    width: 380px;
+    height: 330px;
+    background: linear-gradient(145deg, #2a1f18 0%, #1c140f 100%); /* 클래식 우드 텍스처 느낌 */
+    border-radius: 16px;
+    border: 4px solid #3d2d22;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.1), 0 12px 30px rgba(0, 0, 0, 0.7);
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding-left: 24px;
+}
+
+/* 턴테이블 금속 플래터 */
+.turntable-platter {
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    background: repeating-radial-gradient(circle, #222 0, #222 2px, #333 3px, #222 4px);
+    border: 6px solid #4f4f4f;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8), inset 0 0 10px #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+/* LP 바이닐 레코드판 */
+.vinyl-record {
+    width: 236px;
+    height: 236px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #151515 30%, #0d0d0d 70%, #000000 100%);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.7);
+    cursor: pointer;
+    /* 기본 회전 애니메이션 세팅 (재생 시 동작) */
+    animation: spinVinyl 2s linear infinite;
+    animation-play-state: paused;
+}
+
+/* 곡 선택 시 LP판이 턴테이블에 얹어지는 애니메이션 효과 */
+.vinyl-record.placing {
+    animation: placeVinyl 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes placeVinyl {
+    0% {
+        transform: translateY(-40px) scale(0.85) rotate(-15deg);
+        opacity: 0.3;
+    }
+    100% {
+        transform: translateY(0) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+/* LP판 회전 무한 애니메이션 */
+@keyframes spinVinyl {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 재생 중 상태: LP 회전 실행 */
+.vinyl-record.spinning {
+    animation-play-state: running;
+}
+
+/* 바이닐 표면 홈(그루브) 효과 라인 */
+.vinyl-groove-lines {
+    position: absolute;
+    width: 90%;
+    height: 90%;
+    border-radius: 50%;
+    border: 1px dashed rgba(255, 255, 255, 0.08);
+    box-shadow: 
+        inset 0 0 0 15px rgba(255, 255, 255, 0.03),
+        inset 0 0 0 35px rgba(255, 255, 255, 0.02),
+        inset 0 0 0 55px rgba(255, 255, 255, 0.03);
+    pointer-events: none;
+}
+
+/* LP 중앙 원형 라벨 */
+.vinyl-label {
+    width: 82px;
+    height: 82px;
+    border-radius: 50%;
+    background-color: #1db954;
+    overflow: hidden;
+    position: relative;
+    border: 2px solid #222;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.5);
+    z-index: 2;
+}
+
+.vinyl-label img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s ease;
 }
 
-.hero-cover:hover {
-    transform: scale(1.03);
+#vinyl-label-fallback {
+    color: #fff;
+    font-size: 24px;
 }
 
-.hero-cover-fallback {
+/* LP 중앙 스핀들 구멍 */
+.vinyl-hole {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #333;
+    border: 2px solid #555;
+    z-index: 3;
+}
+
+/* 톤암 부품 조립체 */
+.tonearm-assembly {
+    position: absolute;
+    top: 36px;
+    right: 32px;
+    width: 50px;
+    height: 250px;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.tonearm-base {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #888, #444);
+    border: 2px solid #222;
+    position: absolute;
+    top: 0;
+    left: 3px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.tonearm-pivot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #eee, #777);
+    position: absolute;
+    top: 12px;
+    left: 15px;
+    z-index: 2;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+}
+
+/* 실제 회전하는 톤암 본체 */
+.tonearm-body {
+    position: absolute;
+    top: 22px;
+    left: 22px;
+    width: 6px;
+    height: 190px;
+    transform-origin: 3px 0;
+    transform: rotate(0deg);
+    transition: transform 0.9s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* 재생 시 톤암이 LP판 위로 이동(26도 회전) */
+.tonearm-assembly.active .tonearm-body {
+    transform: rotate(27deg);
+}
+
+.tonearm-rod {
+    width: 6px;
+    height: 170px;
+    background: linear-gradient(to right, #ccc, #fff, #999);
+    border-radius: 3px;
+    box-shadow: 2px 4px 6px rgba(0, 0, 0, 0.5);
+}
+
+.tonearm-headshell {
+    position: absolute;
+    bottom: -15px;
+    left: -4px;
+    width: 14px;
+    height: 32px;
+    background: #111;
+    border: 1px solid #444;
+    border-radius: 2px;
+    transform: rotate(-12deg);
+}
+
+.tonearm-cartridge {
+    position: absolute;
+    bottom: 2px;
+    left: 3px;
+    width: 8px;
+    height: 10px;
+    background-color: #e50914; /* 빨간색 카트리지 바늘 포인트 */
+    border-radius: 1px;
+}
+
+/* 턴테이블 전원 인디케이터 */
+.turntable-lamp {
+    position: absolute;
+    bottom: 20px;
+    left: 24px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #555;
+    transition: 0.3s;
+}
+
+.turntable-lamp.active {
+    background-color: #1db954;
+    box-shadow: 0 0 8px #1db954;
+}
+
+/* 2. 우측 앨범자켓 스탠드 및 정보 */
+.album-jacket-stand {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    flex: 1;
+}
+
+.jacket-frame {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7);
+    flex-shrink: 0;
+    perspective: 800px;
+}
+
+.hero-jacket-img {
     width: 100%;
     height: 100%;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s;
+}
+
+.hero-jacket-img:hover {
+    transform: rotateY(-8deg) scale(1.03);
+}
+
+.hero-jacket-fallback {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    background-color: #242424;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 80px;
+    font-size: 60px;
     color: #444;
+}
+
+.jacket-vinyl-peek {
+    position: absolute;
+    top: 10px;
+    right: -15px;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #222 30%, #000 80%);
+    z-index: -1;
+    box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+    border: 1px solid #333;
 }
 
 .hero-details {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    max-width: 480px;
+    flex: 1;
 }
 
 .hero-badge-wrap {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 
 .hero-title {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 700;
     color: #fff;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     line-height: 1.25;
 }
 
 .hero-artist {
-    font-size: 20px;
+    font-size: 18px;
     color: #1db954;
     font-weight: 600;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .hero-album {
-    font-size: 14px;
+    font-size: 13px;
     color: #888;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 /* 중앙 플레이어 컨트롤 버튼 */
 .hero-controls {
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: 20px;
 }
 
 .hero-btn {
     background: transparent;
     border: none;
     color: #bbb;
-    font-size: 24px;
+    font-size: 22px;
     cursor: pointer;
     transition: 0.2s;
 }
@@ -212,15 +463,15 @@ body {
 }
 
 .hero-play-btn {
-    width: 56px;
-    height: 56px;
+    width: 52px;
+    height: 52px;
     border-radius: 50%;
     background-color: #1db954;
     color: #000;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    font-size: 20px;
 }
 
 .hero-play-btn:hover {

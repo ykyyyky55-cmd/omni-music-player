@@ -30,27 +30,63 @@
         <main class="main-content">
             <!-- 탭 0: 지금 재생 중 전용 화면 -->
             <section id="tab-nowplaying" class="tab-pane active nowplaying-pane">
-                <!-- 가운데 큰 플레이어 창 -->
-                <div class="nowplaying-hero">
-                    <div class="hero-cover-container">
-                        <img id="hero-cover-img" src="" alt="Album Cover" class="hero-cover" style="display: none;">
-                        <div id="hero-cover-fallback" class="hero-cover-fallback">
-                            <i class="fa-solid fa-compact-disc fa-spin-pulse"></i>
+                <!-- 가운데 LP 턴테이블 & 우측 앨범자켓 창 -->
+                <div class="nowplaying-hero turntable-mode">
+                    <!-- 1. 좌측/중앙: LP 턴테이블 본체 -->
+                    <div class="turntable-deck">
+                        <!-- 턴테이블 회전 플래터 -->
+                        <div class="turntable-platter">
+                            <!-- LP 바이닐 레코드판 (회전 애니메이션 대상) -->
+                            <div class="vinyl-record" id="vinyl-record">
+                                <div class="vinyl-groove-lines"></div>
+                                <div class="vinyl-label" id="vinyl-label">
+                                    <img id="vinyl-label-img" src="" alt="Label" style="display: none;">
+                                    <div id="vinyl-label-fallback"><i class="fa-solid fa-music"></i></div>
+                                </div>
+                                <div class="vinyl-hole"></div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="hero-details">
-                        <div class="hero-badge-wrap">
-                            <span class="track-badge badge-local" id="hero-source-badge">READY</span>
-                        </div>
-                        <h1 id="hero-title" class="hero-title">음악을 선택해주세요</h1>
-                        <h3 id="hero-artist" class="hero-artist">아티스트</h3>
-                        <p id="hero-album" class="hero-album">앨범 정보</p>
 
-                        <!-- 중앙 플레이어 컨트롤 -->
-                        <div class="hero-controls">
-                            <button class="hero-btn" id="hero-btn-prev" title="이전곡"><i class="fa-solid fa-backward-step"></i></button>
-                            <button class="hero-btn hero-play-btn" id="hero-btn-play" title="재생/일시정지"><i class="fa-solid fa-play"></i></button>
-                            <button class="hero-btn" id="hero-btn-next" title="다음곡"><i class="fa-solid fa-forward-step"></i></button>
+                        <!-- 톤암 (회전하여 LP 위로 올라가는 바늘 부품) -->
+                        <div class="tonearm-assembly" id="tonearm-assembly">
+                            <div class="tonearm-base"></div>
+                            <div class="tonearm-pivot"></div>
+                            <div class="tonearm-body">
+                                <div class="tonearm-rod"></div>
+                                <div class="tonearm-headshell">
+                                    <div class="tonearm-cartridge"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 턴테이블 전원 인디케이터 램프 -->
+                        <div class="turntable-lamp" id="turntable-lamp"></div>
+                    </div>
+
+                    <!-- 2. 우측: 3D 앨범자켓 스탠드 및 곡 정보 -->
+                    <div class="album-jacket-stand">
+                        <div class="jacket-frame">
+                            <img id="hero-cover-img" src="" alt="Album Jacket" class="hero-jacket-img" style="display: none;">
+                            <div id="hero-cover-fallback" class="hero-jacket-fallback">
+                                <i class="fa-solid fa-compact-disc"></i>
+                            </div>
+                            <div class="jacket-vinyl-peek"></div>
+                        </div>
+
+                        <div class="hero-details">
+                            <div class="hero-badge-wrap">
+                                <span class="track-badge badge-local" id="hero-source-badge">VINYL READY</span>
+                            </div>
+                            <h1 id="hero-title" class="hero-title">음악을 선택해주세요</h1>
+                            <h3 id="hero-artist" class="hero-artist">아티스트</h3>
+                            <p id="hero-album" class="hero-album">앨범 정보</p>
+
+                            <!-- 중앙 플레이어 컨트롤 버튼 -->
+                            <div class="hero-controls">
+                                <button class="hero-btn" id="hero-btn-prev" title="이전곡"><i class="fa-solid fa-backward-step"></i></button>
+                                <button class="hero-btn hero-play-btn" id="hero-btn-play" title="재생/일시정지"><i class="fa-solid fa-play"></i></button>
+                                <button class="hero-btn" id="hero-btn-next" title="다음곡"><i class="fa-solid fa-forward-step"></i></button>
+                            </div>
                         </div>
                     </div>
                 </div>
