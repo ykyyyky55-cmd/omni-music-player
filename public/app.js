@@ -64,13 +64,31 @@ function onPlayerReady() {
     isYtReady = true;
 }
 
+let ytProgressInterval = null;
+
 // 유튜브 상태 변경 감지
 function onPlayerStateChange(event) {
     if (event.data === YT.PlayerState.PLAYING) {
         isPlaying = true;
         updatePlayPauseIcon();
+        // 유튜브 재생 중 주기적 시간/톤암 각도 업데이트
+        if (ytProgressInterval) clearInterval(ytProgressInterval);
+        ytProgressInterval = setInterval(() => {
+            if (ytPlayer && ytPlayer.getCurrentTime && ytPlayer.getDuration) {
+                const cur = ytPlayer.getCurrentTime();
+                const dur = ytPlayer.getDuration();
+                if (dur > 0) {
+                    currentTimeSpan.textContent = formatTime(cur);
+                    totalTimeSpan.textContent = formatTime(dur);
+                    const progress = cur / dur;
+                    seekBar.value = progress * 100;
+                    updateTonearmPosition(progress);
+                }
+            }
+        }, 500);
     } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
         isPlaying = false;
+        if (ytProgressInterval) clearInterval(ytProgressInterval);
         updatePlayPauseIcon();
         if (event.data === YT.PlayerState.ENDED) {
             playNextTrack();
@@ -285,22 +303,108 @@ async function playTrack(track) {
 
     checkFavoriteStatus(track.id);
 
-    if (track.type === 'local') {
-        if (ytPlayer && isYtReady && ytPlayer.pauseVideo) {
-            ytPlayer.pauseVideo();
-        }
-        audioPlayer.src = `/api/stream?path=${encodeURIComponent(track.source)}`;
-        audioPlayer.play();
-        isPlaying = true;
-    } else if (track.type === 'youtube') {
-        audioPlayer.pause();
-        if (ytPlayer && isYtReady) {
-            ytPlayer.loadVideoById(track.source);
-            ytPlayer.playVideo();
-            isPlaying = true;
-        }
+    // 턴테이블 모션 및 지연 재생 시작
+    startTurntableAndPlay(track);
+}
+
+// 톤암 각도 제어 상수 (도 단위)
+const TONEARM_REST_ANGLE = 0;         // 대기 위치: 0도
+const TONEARM_START_ANGLE = 13.0;     // LP판 시작 트랙(외주): 13.0도
+const TONEARM_END_ANGLE = 22.5;       // LP판 종료 트랙(라벨 이미지 근처): 22.5도
+const TONEARM_TOTAL_SPAN = TONEARM_END_ANGLE - TONEARM_START_ANGLE; // 9.5도 총 회전폭
+
+let tonearmMoveTimer = null;
+let currentTrackAngleRange = { startAngle: 13.0, endAngle: 22.5 };
+
+// 현재 곡이 속한 동일 앨범의 연속 트랙 정보 계산 함수
+function getAlbumGroupInfo() {
+    if (!currentPlaylist || currentPlaylist.length === 0 || currentIndex < 0) {
+        return { indexInAlbum: 0, totalInAlbum: 1 };
     }
-    updatePlayPauseIcon();
+
+    const cur = currentPlaylist[currentIndex];
+    const albumName = cur.album ? cur.album.trim().toLowerCase() : null;
+
+    // 앨범 정보가 없거나 기본값인 경우 단일 곡으로 취급
+    if (!albumName || albumName === '알 수 없는 앨범' || albumName === '온라인 스트리밍') {
+        return { indexInAlbum: 0, totalInAlbum: 1 };
+    }
+
+    // 연속된 동일 앨범 구간 탐색 (앞뒤)
+    let startIdx = currentIndex;
+    while (startIdx > 0 && currentPlaylist[startIdx - 1].album && currentPlaylist[startIdx - 1].album.trim().toLowerCase() === albumName) {
+        startIdx--;
+    }
+
+    let endIdx = currentIndex;
+    while (endIdx < currentPlaylist.length - 1 && currentPlaylist[endIdx + 1].album && currentPlaylist[endIdx + 1].album.trim().toLowerCase() === albumName) {
+        endIdx++;
+    }
+
+    const totalInAlbum = (endIdx - startIdx) + 1;
+    const indexInAlbum = currentIndex - startIdx;
+
+    return { indexInAlbum, totalInAlbum };
+}
+
+// 현재 곡의 톤암 이동 각도 범위 계산 (동일 앨범인 경우 속도를 늦춰 전체 곡에 걸쳐 이동)
+function calculateTrackAngleRange() {
+    const { indexInAlbum, totalInAlbum } = getAlbumGroupInfo();
+    const trackSpan = TONEARM_TOTAL_SPAN / totalInAlbum;
+    const startAngle = TONEARM_START_ANGLE + (trackSpan * indexInAlbum);
+    const endAngle = startAngle + trackSpan;
+    return { startAngle, endAngle };
+}
+
+// 톤암을 LP판 위에 올린 후 음악을 재생하는 턴테이블 시동 함수
+function startTurntableAndPlay(track) {
+    if (tonearmMoveTimer) clearTimeout(tonearmMoveTimer);
+
+    // 1. 턴테이블 LP판 회전 및 LED 즉시 켜기
+    if (vinylRecord) vinylRecord.classList.add('spinning');
+    if (turntableLamp) turntableLamp.classList.add('active');
+
+    // 2. 현재 트랙의 각도 범위 산출
+    currentTrackAngleRange = calculateTrackAngleRange();
+    const targetStart = currentTrackAngleRange.startAngle;
+
+    // 3. 톤암을 시작 트랙 위로 부드럽게 이동 (1.2초 소요)
+    if (tonearmAssembly) {
+        tonearmAssembly.style.transition = 'transform 1.2s cubic-bezier(0.25, 1, 0.5, 1)';
+        tonearmAssembly.style.transform = `rotate(${targetStart}deg)`;
+    }
+
+    // 4. 톤암이 완전히 판 위에 올라간 후(1.2초 뒤) 실제 음악 재생 시작!
+    tonearmMoveTimer = setTimeout(() => {
+        if (track.type === 'local') {
+            if (ytPlayer && isYtReady && ytPlayer.pauseVideo) {
+                ytPlayer.pauseVideo();
+            }
+            audioPlayer.src = `/api/stream?path=${encodeURIComponent(track.source)}`;
+            audioPlayer.play();
+            isPlaying = true;
+        } else if (track.type === 'youtube') {
+            audioPlayer.pause();
+            if (ytPlayer && isYtReady) {
+                ytPlayer.loadVideoById(track.source);
+                ytPlayer.playVideo();
+                isPlaying = true;
+            }
+        }
+        updatePlayPauseIcon();
+    }, 1200);
+}
+
+// 음악 진행률(0~1)에 따라 톤암을 천천히 왼쪽(내주 라벨 근처)으로 이동
+function updateTonearmPosition(progress) {
+    if (!isPlaying || !tonearmAssembly) return;
+    const clampedProgress = Math.min(Math.max(progress, 0), 1);
+    const { startAngle, endAngle } = currentTrackAngleRange;
+    const currentAngle = startAngle + ((endAngle - startAngle) * clampedProgress);
+
+    // 재생 중에는 0.5초 선형 보간으로 미세하게 전진
+    tonearmAssembly.style.transition = 'transform 0.5s linear';
+    tonearmAssembly.style.transform = `rotate(${currentAngle.toFixed(2)}deg)`;
 }
 
 // 하단 다른 곡 목록 (Queue Carousel) 동적 렌더링 함수
@@ -333,7 +437,6 @@ function updateQueueCarousel() {
             <div class="queue-card-artist">${item.artist || item.type}</div>
         `;
 
-        // 카드 클릭 시 해당 곡으로 즉시 전환 재생
         card.addEventListener('click', () => {
             currentIndex = idx;
             playTrack(item);
@@ -354,13 +457,18 @@ function togglePlayPause() {
             ytPlayer.pauseVideo();
         }
         isPlaying = false;
-    } else {
-        if (currentTrack.type === 'local') {
-            audioPlayer.play();
-        } else if (ytPlayer && isYtReady) {
-            ytPlayer.playVideo();
+        if (tonearmMoveTimer) clearTimeout(tonearmMoveTimer);
+
+        // 일시정지 시: 톤암을 레스트(0도)로 복귀하고 LP 회전 정지
+        if (tonearmAssembly) {
+            tonearmAssembly.style.transition = 'transform 1.2s cubic-bezier(0.25, 1, 0.5, 1)';
+            tonearmAssembly.style.transform = `rotate(${TONEARM_REST_ANGLE}deg)`;
         }
-        isPlaying = true;
+        if (vinylRecord) vinylRecord.classList.remove('spinning');
+        if (turntableLamp) turntableLamp.classList.remove('active');
+    } else {
+        // 재생 재개 시: 톤암이 다시 올라가고 재생 시작
+        startTurntableAndPlay(currentTrack);
     }
     updatePlayPauseIcon();
 }
@@ -370,28 +478,14 @@ heroBtnPlay.addEventListener('click', togglePlayPause);
 heroBtnNext.addEventListener('click', playNextTrack);
 heroBtnPrev.addEventListener('click', playPrevTrack);
 
-// LP 레코드판 클릭 시 재생/일시정지 토글
 if (vinylRecord) {
     vinylRecord.addEventListener('click', togglePlayPause);
 }
 
-// 재생 상태에 따라 톤암 이동 및 LP판 회전 제어
 function updatePlayPauseIcon() {
     const playIcon = isPlaying ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play"></i>';
     btnPlayPause.innerHTML = playIcon;
     heroBtnPlay.innerHTML = playIcon;
-
-    if (isPlaying) {
-        // 톤암이 LP판 위로 내려앉고 바이닐이 회전 시작
-        if (tonearmAssembly) tonearmAssembly.classList.add('active');
-        if (vinylRecord) vinylRecord.classList.add('spinning');
-        if (turntableLamp) turntableLamp.classList.add('active');
-    } else {
-        // 톤암이 원위치로 복귀하고 바이닐 회전 정지
-        if (tonearmAssembly) tonearmAssembly.classList.remove('active');
-        if (vinylRecord) vinylRecord.classList.remove('spinning');
-        if (turntableLamp) turntableLamp.classList.remove('active');
-    }
 }
 
 // 8. 이전곡 / 다음곡 이동
@@ -410,7 +504,7 @@ function playPrevTrack() {
 btnNext.addEventListener('click', playNextTrack);
 btnPrev.addEventListener('click', playPrevTrack);
 
-// 9. 로컬 오디오 탐색 및 시간 표시
+// 9. 로컬 오디오 재생 진행 감지 및 톤암 실시간 위치 연동
 audioPlayer.addEventListener('timeupdate', () => {
     if (currentTrack && currentTrack.type === 'local') {
         const cur = audioPlayer.currentTime;
@@ -418,7 +512,10 @@ audioPlayer.addEventListener('timeupdate', () => {
         currentTimeSpan.textContent = formatTime(cur);
         totalTimeSpan.textContent = formatTime(dur);
         if (dur > 0) {
-            seekBar.value = (cur / dur) * 100;
+            const progress = cur / dur;
+            seekBar.value = progress * 100;
+            // 톤암 실시간 전진 업데이트
+            updateTonearmPosition(progress);
         }
     }
 });
