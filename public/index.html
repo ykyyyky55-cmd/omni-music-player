@@ -17,7 +17,8 @@
                 <h2>Omni Music</h2>
             </div>
             <nav class="nav-menu">
-                <button class="nav-item active" data-tab="local"><i class="fa-solid fa-hard-drive"></i> 내 저장소</button>
+                <button class="nav-item active" data-tab="nowplaying"><i class="fa-solid fa-circle-play"></i> 지금 재생 중</button>
+                <button class="nav-item" data-tab="local"><i class="fa-solid fa-hard-drive"></i> 내 저장소</button>
                 <button class="nav-item" data-tab="streaming"><i class="fa-brands fa-youtube"></i> 유튜브 / 웹</button>
                 <button class="nav-item" data-tab="services"><i class="fa-solid fa-globe"></i> 음원 사이트</button>
                 <button class="nav-item" data-tab="frequent"><i class="fa-solid fa-fire"></i> 자주 듣는 음악</button>
@@ -27,8 +28,47 @@
 
         <!-- 메인 콘텐츠 영역 -->
         <main class="main-content">
+            <!-- 탭 0: 지금 재생 중 전용 화면 -->
+            <section id="tab-nowplaying" class="tab-pane active nowplaying-pane">
+                <!-- 가운데 큰 플레이어 창 -->
+                <div class="nowplaying-hero">
+                    <div class="hero-cover-container">
+                        <img id="hero-cover-img" src="" alt="Album Cover" class="hero-cover" style="display: none;">
+                        <div id="hero-cover-fallback" class="hero-cover-fallback">
+                            <i class="fa-solid fa-compact-disc fa-spin-pulse"></i>
+                        </div>
+                    </div>
+                    <div class="hero-details">
+                        <div class="hero-badge-wrap">
+                            <span class="track-badge badge-local" id="hero-source-badge">READY</span>
+                        </div>
+                        <h1 id="hero-title" class="hero-title">음악을 선택해주세요</h1>
+                        <h3 id="hero-artist" class="hero-artist">아티스트</h3>
+                        <p id="hero-album" class="hero-album">앨범 정보</p>
+
+                        <!-- 중앙 플레이어 컨트롤 -->
+                        <div class="hero-controls">
+                            <button class="hero-btn" id="hero-btn-prev" title="이전곡"><i class="fa-solid fa-backward-step"></i></button>
+                            <button class="hero-btn hero-play-btn" id="hero-btn-play" title="재생/일시정지"><i class="fa-solid fa-play"></i></button>
+                            <button class="hero-btn" id="hero-btn-next" title="다음곡"><i class="fa-solid fa-forward-step"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 하단 다른 곡 목록 (큐 / 추천) -->
+                <div class="nowplaying-queue-section">
+                    <div class="queue-header">
+                        <h3><i class="fa-solid fa-list-ul"></i> 다른 곡 목록 (재생 대기열)</h3>
+                        <span class="queue-sub" id="queue-count-text">0곡</span>
+                    </div>
+                    <div class="queue-carousel" id="nowplaying-queue-carousel">
+                        <p class="empty-msg">선택된 재생 목록이 없습니다. '내 저장소' 또는 '스트리밍'에서 곡을 선택해보세요.</p>
+                    </div>
+                </div>
+            </section>
+
             <!-- 탭 1: 내 저장소 -->
-            <section id="tab-local" class="tab-pane active">
+            <section id="tab-local" class="tab-pane">
                 <header class="section-header">
                     <h2>내 저장소 음악</h2>
                     <div class="search-bar-wrapper">

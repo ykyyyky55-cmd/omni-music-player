@@ -23,6 +23,19 @@ const totalTimeSpan = document.getElementById('total-time');
 const volumeSlider = document.getElementById('volume-slider');
 const btnFavToggle = document.getElementById('btn-favorite-toggle');
 
+// 전용 '지금 재생 중' Hero 화면 DOM 요소
+const heroCoverImg = document.getElementById('hero-cover-img');
+const heroCoverFallback = document.getElementById('hero-cover-fallback');
+const heroTitle = document.getElementById('hero-title');
+const heroArtist = document.getElementById('hero-artist');
+const heroAlbum = document.getElementById('hero-album');
+const heroSourceBadge = document.getElementById('hero-source-badge');
+const heroBtnPlay = document.getElementById('hero-btn-play');
+const heroBtnPrev = document.getElementById('hero-btn-prev');
+const heroBtnNext = document.getElementById('hero-btn-next');
+const queueCarousel = document.getElementById('nowplaying-queue-carousel');
+const queueCountText = document.getElementById('queue-count-text');
+
 // 1. YouTube IFrame API 준비 완료 콜백 (글로벌 등록)
 window.onYouTubeIframeAPIReady = function() {
     ytPlayer = new YT.Player('youtube-player', {
@@ -59,19 +72,30 @@ function onPlayerStateChange(event) {
 }
 
 // 2. 탭 전환 이벤트 리스너 설정
+function switchTab(tabId) {
+    document.querySelectorAll('.nav-item').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-tab') === tabId);
+    });
+    document.querySelectorAll('.tab-pane').forEach(p => {
+        p.classList.toggle('active', p.id === `tab-${tabId}`);
+    });
+
+    if (tabId === 'frequent') loadFrequentTracks();
+    if (tabId === 'favorites') loadFavorites();
+}
+
 document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => {
-        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-        
-        btn.classList.add('active');
         const tabId = btn.getAttribute('data-tab');
-        document.getElementById(`tab-${tabId}`).classList.add('active');
-
-        // 통계 탭 열 때 최신 데이터 갱신
-        if (tabId === 'frequent') loadFrequentTracks();
-        if (tabId === 'favorites') loadFavorites();
+        switchTab(tabId);
     });
+});
+
+// 하단 플레이어 트랙 정보 클릭 시 '지금 재생 중' 전용 뷰로 이동
+document.querySelector('.track-info').addEventListener('click', (e) => {
+    // 즐겨찾기 버튼 클릭인 경우는 제외
+    if (e.target.closest('#btn-favorite-toggle')) return;
+    switchTab('nowplaying');
 });
 
 // 3. 로컬 음원 폴더 스캔 기능
@@ -181,7 +205,7 @@ async function playTrack(track) {
     playerSourceBadge.textContent = track.type.toUpperCase();
     playerSourceBadge.className = `track-badge ${track.type === 'local' ? 'badge-local' : 'badge-youtube'}`;
 
-    // 앨범 커버 이미지 바인딩
+    // 하단 플레이어 앨범 커버 이미지 바인딩
     if (track.coverUrl) {
         playerCover.src = track.coverUrl;
         playerCover.style.display = 'block';
@@ -194,6 +218,29 @@ async function playTrack(track) {
         playerCover.style.display = 'none';
         playerCoverFallback.style.display = 'flex';
     }
+
+    // 중앙 전용 Hero 화면 앨범 커버 및 상세 정보 동기화
+    heroTitle.textContent = track.title || '알 수 없는 곡';
+    heroArtist.textContent = track.artist || '알 수 없는 아티스트';
+    heroAlbum.textContent = track.album ? `앨범: ${track.album}` : (track.type === 'local' ? '로컬 저장소 음원' : '온라인 스트리밍');
+    heroSourceBadge.textContent = track.type.toUpperCase();
+    heroSourceBadge.className = `track-badge ${track.type === 'local' ? 'badge-local' : 'badge-youtube'}`;
+
+    if (track.coverUrl) {
+        heroCoverImg.src = track.coverUrl;
+        heroCoverImg.style.display = 'block';
+        heroCoverFallback.style.display = 'none';
+        heroCoverImg.onerror = () => {
+            heroCoverImg.style.display = 'none';
+            heroCoverFallback.style.display = 'flex';
+        };
+    } else {
+        heroCoverImg.style.display = 'none';
+        heroCoverFallback.style.display = 'flex';
+    }
+
+    // 하단 다른 곡 목록 (대기열) 캐러셀 갱신
+    updateQueueCarousel();
 
     // 재생 횟수 기록
     fetch('/api/play-count', {
@@ -222,6 +269,46 @@ async function playTrack(track) {
     updatePlayPauseIcon();
 }
 
+// 하단 다른 곡 목록 (Queue Carousel) 동적 렌더링 함수
+function updateQueueCarousel() {
+    if (!queueCarousel) return;
+    queueCarousel.innerHTML = '';
+
+    if (!currentPlaylist || currentPlaylist.length === 0) {
+        queueCarousel.innerHTML = '<p class="empty-msg">대기열에 다른 곡이 없습니다.</p>';
+        queueCountText.textContent = '0곡';
+        return;
+    }
+
+    queueCountText.textContent = `${currentPlaylist.length}곡`;
+
+    currentPlaylist.forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = 'queue-card';
+        if (currentTrack && currentTrack.id === item.id) {
+            card.classList.add('current');
+        }
+
+        const coverHtml = item.coverUrl
+            ? `<img src="${item.coverUrl}" class="queue-card-cover" alt="Cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="queue-card-fallback" style="display:none;"><i class="fa-solid fa-music"></i></div>`
+            : `<div class="queue-card-fallback"><i class="fa-solid fa-music"></i></div>`;
+
+        card.innerHTML = `
+            ${coverHtml}
+            <div class="queue-card-title">${item.title}</div>
+            <div class="queue-card-artist">${item.artist || item.type}</div>
+        `;
+
+        // 카드 클릭 시 해당 곡으로 즉시 전환 재생
+        card.addEventListener('click', () => {
+            currentIndex = idx;
+            playTrack(item);
+        });
+
+        queueCarousel.appendChild(card);
+    });
+}
+
 // 7. 재생/일시정지 토글
 function togglePlayPause() {
     if (!currentTrack) return;
@@ -245,9 +332,14 @@ function togglePlayPause() {
 }
 
 btnPlayPause.addEventListener('click', togglePlayPause);
+heroBtnPlay.addEventListener('click', togglePlayPause);
+heroBtnNext.addEventListener('click', playNextTrack);
+heroBtnPrev.addEventListener('click', playPrevTrack);
 
 function updatePlayPauseIcon() {
-    btnPlayPause.innerHTML = isPlaying ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play"></i>';
+    const playIcon = isPlaying ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play"></i>';
+    btnPlayPause.innerHTML = playIcon;
+    heroBtnPlay.innerHTML = playIcon;
 }
 
 // 8. 이전곡 / 다음곡 이동
@@ -482,5 +574,41 @@ document.querySelectorAll('.service-launch-btn').forEach(btn => {
             `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
         );
     });
+});
+
+// 16. 페이지 최초 진입 시 로컬 음원 자동 스캔 및 다른 곡 목록 초기화
+window.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const res = await fetch('/api/scan-local');
+        const data = await res.json();
+        if (data.files && data.files.length > 0) {
+            currentPlaylist = data.files.map(f => ({
+                id: f.fullPath,
+                title: f.title,
+                artist: f.artist,
+                album: f.album,
+                coverUrl: f.coverUrl,
+                type: 'local',
+                source: f.fullPath
+            }));
+            
+            // 로컬 보관함 목록 렌더링
+            renderTrackList('local-track-list', currentPlaylist);
+
+            // 첫 번째 곡을 기본 선택 상태로 세팅 (자동 재생은 하지 않고 메타 정보만 로드)
+            const first = currentPlaylist[0];
+            heroTitle.textContent = first.title;
+            heroArtist.textContent = first.artist;
+            heroAlbum.textContent = first.album ? `앨범: ${first.album}` : '';
+            if (first.coverUrl) {
+                heroCoverImg.src = first.coverUrl;
+                heroCoverImg.style.display = 'block';
+                heroCoverFallback.style.display = 'none';
+            }
+            updateQueueCarousel();
+        }
+    } catch (e) {
+        console.warn('초기 로컬 음악 스캔 생략:', e);
+    }
 });
 

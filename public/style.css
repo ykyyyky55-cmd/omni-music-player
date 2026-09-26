@@ -95,6 +95,245 @@ body {
     display: block;
 }
 
+/* 지금 재생 중 전용 화면 스타일 */
+.nowplaying-pane {
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.nowplaying-pane.active {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 가운데 큰 플레이어 창 (Hero 섹션) */
+.nowplaying-hero {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 50px;
+    padding: 30px 20px 40px;
+    background: radial-gradient(circle at center, rgba(35, 45, 40, 0.6) 0%, rgba(18, 18, 18, 0.9) 80%);
+    border-radius: 16px;
+    border: 1px solid #282828;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+    margin-bottom: 30px;
+}
+
+.hero-cover-container {
+    width: 280px;
+    height: 280px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6);
+    flex-shrink: 0;
+    background-color: #222;
+}
+
+.hero-cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.hero-cover:hover {
+    transform: scale(1.03);
+}
+
+.hero-cover-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 80px;
+    color: #444;
+}
+
+.hero-details {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 480px;
+}
+
+.hero-badge-wrap {
+    margin-bottom: 12px;
+}
+
+.hero-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+    line-height: 1.25;
+}
+
+.hero-artist {
+    font-size: 20px;
+    color: #1db954;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.hero-album {
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 24px;
+}
+
+/* 중앙 플레이어 컨트롤 버튼 */
+.hero-controls {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.hero-btn {
+    background: transparent;
+    border: none;
+    color: #bbb;
+    font-size: 24px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.hero-btn:hover {
+    color: #fff;
+    transform: scale(1.1);
+}
+
+.hero-play-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: #1db954;
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+
+.hero-play-btn:hover {
+    background-color: #1ed760;
+    transform: scale(1.08);
+    color: #000;
+}
+
+/* 하단 다른 곡 목록 (Queue Carousel) */
+.nowplaying-queue-section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.queue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.queue-header h3 {
+    font-size: 18px;
+    color: #eee;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.queue-sub {
+    font-size: 13px;
+    color: #888;
+}
+
+.queue-carousel {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 12px;
+}
+
+.queue-carousel::-webkit-scrollbar {
+    height: 8px;
+}
+
+.queue-carousel::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 4px;
+}
+
+/* 다른 곡 카드 스타일 */
+.queue-card {
+    min-width: 170px;
+    max-width: 170px;
+    background-color: #1c1c1c;
+    border-radius: 10px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid #2a2a2a;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.queue-card:hover {
+    background-color: #272727;
+    transform: translateY(-4px);
+    border-color: #1db954;
+}
+
+.queue-card.current {
+    border-color: #1db954;
+    background-color: #202b23;
+}
+
+.queue-card-cover {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 6px;
+    object-fit: cover;
+    background-color: #252525;
+}
+
+.queue-card-fallback {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 6px;
+    background-color: #282828;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    font-size: 32px;
+}
+
+.queue-card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.queue-card-artist {
+    font-size: 11px;
+    color: #999;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .section-header {
     margin-bottom: 24px;
 }
