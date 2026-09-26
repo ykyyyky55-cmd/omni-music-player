@@ -254,6 +254,11 @@ async function playTrack(track) {
         void vinylRecord.offsetWidth; // 리플로우 강제 트리거
         vinylRecord.classList.add('placing');
 
+        // 안착 모션 종료(0.65초) 후 placing 클래스를 제거하여 회전(spinning)과 충돌 방지
+        setTimeout(() => {
+            if (vinylRecord) vinylRecord.classList.remove('placing');
+        }, 650);
+
         if (track.coverUrl) {
             vinylLabelImg.src = track.coverUrl;
             vinylLabelImg.style.display = 'block';
