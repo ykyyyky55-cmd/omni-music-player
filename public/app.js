@@ -308,13 +308,13 @@ async function playTrack(track) {
 }
 
 // 톤암 각도 제어 상수 (도 단위)
-const TONEARM_REST_ANGLE = 0;         // 대기 위치: 0도
-const TONEARM_START_ANGLE = 13.0;     // LP판 시작 트랙(외주): 13.0도
-const TONEARM_END_ANGLE = 22.5;       // LP판 종료 트랙(라벨 이미지 근처): 22.5도
-const TONEARM_TOTAL_SPAN = TONEARM_END_ANGLE - TONEARM_START_ANGLE; // 9.5도 총 회전폭
+const TONEARM_REST_ANGLE = 0;         // 대기 위치: 0도 (레스트)
+const TONEARM_START_ANGLE = 16.5;     // LP판 시작 트랙(외주 그루브 안쪽으로 더 이동): 16.5도
+const TONEARM_END_ANGLE = 24.0;       // LP판 종료 트랙(라벨 이미지 근처): 24.0도
+const TONEARM_TOTAL_SPAN = TONEARM_END_ANGLE - TONEARM_START_ANGLE; // 7.5도 총 회전폭
 
 let tonearmMoveTimer = null;
-let currentTrackAngleRange = { startAngle: 13.0, endAngle: 22.5 };
+let currentTrackAngleRange = { startAngle: 16.5, endAngle: 24.0 };
 
 // 현재 곡이 속한 동일 앨범의 연속 트랙 정보 계산 함수
 function getAlbumGroupInfo() {
@@ -356,26 +356,30 @@ function calculateTrackAngleRange() {
     return { startAngle, endAngle };
 }
 
-// 톤암을 LP판 위에 올린 후 음악을 재생하는 턴테이블 시동 함수
+// 톤암을 먼저 LP판으로 이동시킨 후, 안착 시점에 LP판 회전과 음악을 동시에 시작하는 시동 함수
 function startTurntableAndPlay(track) {
     if (tonearmMoveTimer) clearTimeout(tonearmMoveTimer);
 
-    // 1. 턴테이블 LP판 회전 및 LED 즉시 켜기
-    if (vinylRecord) vinylRecord.classList.add('spinning');
+    // 1. 초기 상태: 전원 LED는 켜지지만, LP판은 톤암이 안착할 때까지 정지 유지
     if (turntableLamp) turntableLamp.classList.add('active');
+    if (vinylRecord) vinylRecord.classList.remove('spinning');
 
-    // 2. 현재 트랙의 각도 범위 산출
+    // 2. 현재 트랙의 각도 범위 산출 (더 왼쪽으로 놓이도록 16.5도 기준)
     currentTrackAngleRange = calculateTrackAngleRange();
     const targetStart = currentTrackAngleRange.startAngle;
 
-    // 3. 톤암을 시작 트랙 위로 부드럽게 이동 (1.2초 소요)
+    // 3. 톤암을 먼저 LP판 시작 트랙 위로 이동 (1.2초간 이동)
     if (tonearmAssembly) {
         tonearmAssembly.style.transition = 'transform 1.2s cubic-bezier(0.25, 1, 0.5, 1)';
         tonearmAssembly.style.transform = `rotate(${targetStart}deg)`;
     }
 
-    // 4. 톤암이 완전히 판 위에 올라간 후(1.2초 뒤) 실제 음악 재생 시작!
+    // 4. 톤암이 LP판 위에 완전히 올라간 후(1.2초 뒤): LP판 회전 시작 및 음악 동시 재생!
     tonearmMoveTimer = setTimeout(() => {
+        // LP판 회전 시작!
+        if (vinylRecord) vinylRecord.classList.add('spinning');
+
+        // 음악 스트리밍 재생 시작!
         if (track.type === 'local') {
             if (ytPlayer && isYtReady && ytPlayer.pauseVideo) {
                 ytPlayer.pauseVideo();
