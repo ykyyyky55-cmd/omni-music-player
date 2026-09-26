@@ -338,3 +338,97 @@ defaultSuggestions.forEach(item => {
     });
     quickCards.appendChild(card);
 });
+
+// 14. DLNA 모달 및 캐스팅 제어 로직
+const dlnaModal = document.getElementById('dlna-modal');
+const btnDlnaModal = document.getElementById('btn-dlna-modal');
+const btnCloseDlna = document.getElementById('btn-close-dlna');
+const btnRefreshDlna = document.getElementById('btn-refresh-dlna');
+const dlnaDeviceList = document.getElementById('dlna-device-list');
+
+// 모달 열기 및 기기 검색
+btnDlnaModal.addEventListener('click', () => {
+    dlnaModal.classList.add('open');
+    fetchDlnaDevices();
+});
+
+// 모달 닫기
+btnCloseDlna.addEventListener('click', () => {
+    dlnaModal.classList.remove('open');
+});
+
+// 기기 새로고침 버튼
+btnRefreshDlna.addEventListener('click', fetchDlnaDevices);
+
+// 로컬 네트워크의 DLNA 기기 목록 가져오기 함수
+async function fetchDlnaDevices() {
+    dlnaDeviceList.innerHTML = '<p class="empty-msg"><i class="fa-solid fa-spinner fa-spin"></i> 기기 탐색 중...</p>';
+    try {
+        const res = await fetch('/api/dlna/devices');
+        const data = await res.json();
+        renderDlnaDevices(data.devices || []);
+    } catch (err) {
+        dlnaDeviceList.innerHTML = '<p class="empty-msg">기기 목록을 불러오는 중 오류가 발생했습니다.</p>';
+    }
+}
+
+// DLNA 기기 목록 UI 렌더링 함수
+function renderDlnaDevices(devices) {
+    dlnaDeviceList.innerHTML = '';
+    if (devices.length === 0) {
+        dlnaDeviceList.innerHTML = '<p class="empty-msg">네트워크에서 발견된 DLNA 기기(스마트TV/오디오)가 없습니다.</p>';
+        return;
+    }
+
+    devices.forEach(dev => {
+        const item = document.createElement('div');
+        item.className = 'device-item';
+        item.innerHTML = `
+            <div class="device-item-info">
+                <i class="fa-solid fa-tv" style="font-size: 20px; color: #1db954;"></i>
+                <div>
+                    <div class="device-name">${dev.name}</div>
+                    <div class="device-host">${dev.host}</div>
+                </div>
+            </div>
+            <button class="device-cast-btn" data-device="${dev.name}">
+                <i class="fa-solid fa-tower-broadcast"></i> 재생 전송
+            </button>
+        `;
+
+        item.querySelector('.device-cast-btn').addEventListener('click', () => {
+            castToDlnaDevice(dev.name);
+        });
+
+        dlnaDeviceList.appendChild(item);
+    });
+}
+
+// 특정 DLNA 기기로 현재 곡 전송 함수
+async function castToDlnaDevice(deviceName) {
+    if (!currentTrack || currentTrack.type !== 'local') {
+        alert('현재 로컬 음원 파일만 DLNA 스피커/TV로 바로 전송할 수 있습니다. 로컬 곡을 먼저 선택해주세요.');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/dlna/play', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                deviceName: deviceName,
+                trackPath: currentTrack.source,
+                title: currentTrack.title
+            })
+        });
+        const result = await res.json();
+        if (result.success) {
+            alert(`${deviceName} 기기로 재생을 전송했습니다!`);
+        } else {
+            alert(`전송 실패: ${result.error || '오류 발생'}`);
+        }
+    } catch (err) {
+        alert('DLNA 전송 중 네트워크 통신 오류가 발생했습니다.');
+    }
+}
+

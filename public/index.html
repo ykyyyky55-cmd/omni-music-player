@@ -105,10 +105,33 @@
         </div>
 
         <div class="player-extras">
+            <!-- DLNA 캐스팅 버튼 -->
+            <button class="icon-btn" id="btn-dlna-modal" title="DLNA 기기로 전송 (스마트TV/오디오)">
+                <i class="fa-solid fa-satellite-dish"></i>
+            </button>
             <i class="fa-solid fa-volume-high"></i>
             <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.8">
         </div>
     </footer>
+
+    <!-- DLNA 기기 선택 모달 -->
+    <div id="dlna-modal" class="modal-backdrop">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-satellite-dish"></i> DLNA 기기 전송</h3>
+                <button class="modal-close" id="btn-close-dlna">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">동일한 Wi-Fi 네트워크에 있는 스마트 TV나 무선 오디오로 음원을 전송합니다.</p>
+                <div id="dlna-device-list" class="device-list">
+                    <p class="empty-msg">기기 검색 중...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-refresh-dlna" class="primary-btn"><i class="fa-solid fa-rotate-right"></i> 기기 새로고침</button>
+            </div>
+        </div>
+    </div>
 
     <!-- 로컬 재생용 숨김 오디오 엘리먼트 -->
     <audio id="audio-player"></audio>
