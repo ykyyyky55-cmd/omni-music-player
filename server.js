@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const dlnacasts = require('dlnacasts2');
+const mm = require('music-metadata'); // 오디오 ID3 메타데이터 파싱 라이브러리
 
 const app = express();
 const PORT = 3000;
@@ -17,12 +18,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 데이터 저장용 JSON 파일 경로
 const DATA_FILE = path.join(__dirname, 'userData.json');
 
-// 사용자 로컬 IPv4 주소 조회 (DLNA 기기에서 접근할 수 있도록 필요)
+// 사용자 로컬 IPv4 주소 조회 (DLNA 기기 연동용)
 function getLocalIpAddress() {
     const interfaces = os.networkInterfaces();
     for (const name of Object.keys(interfaces)) {
         for (const iface of interfaces[name]) {
-            // 외부 접속 가능한 IPv4 주소 선택
             if (iface.family === 'IPv4' && !iface.internal) {
                 return iface.address;
             }
@@ -64,12 +64,7 @@ function scanDirectory(dirPath, fileList = []) {
             } else if (item.isFile()) {
                 const ext = path.extname(item.name).toLowerCase();
                 if (SUPPORTED_EXTENSIONS.includes(ext)) {
-                    fileList.push({
-                        title: path.basename(item.name, ext),
-                        fileName: item.name,
-                        fullPath: fullPath,
-                        type: 'local'
-                    });
+                    fileList.push(fullPath);
                 }
             }
         }
@@ -79,19 +74,17 @@ function scanDirectory(dirPath, fileList = []) {
     return fileList;
 }
 
-// 1. DLNA 캐스터 초기화 및 기기 검색 목록 관리
+// DLNA 캐스터 초기화 및 기기 검색 목록 관리
 const caster = dlnacasts();
 const dlnaDevices = new Map();
 
-// 네트워크 상의 DLNA 기기(스마트 TV, 오디오 등) 감지 이벤트
 caster.on('update', (player) => {
     console.log(`[DLNA] 기기 감지: ${player.name} (${player.host})`);
     dlnaDevices.set(player.name, player);
 });
 
-// 2. DLNA 검색된 기기 목록 반환 API
+// 1. DLNA 기기 목록 API
 app.get('/api/dlna/devices', (req, res) => {
-    // 현재 발견된 DLNA 렌더러 기기 이름 및 호스트 목록 추출
     const devices = Array.from(dlnaDevices.values()).map(d => ({
         name: d.name,
         host: d.host
@@ -99,7 +92,7 @@ app.get('/api/dlna/devices', (req, res) => {
     res.json({ devices });
 });
 
-// 3. DLNA 특정 기기로 음원 전송 및 재생 API
+// 2. DLNA 음원 전송 및 재생 API
 app.post('/api/dlna/play', (req, res) => {
     const { deviceName, trackPath, title } = req.body;
     const player = dlnaDevices.get(deviceName);
@@ -109,52 +102,93 @@ app.post('/api/dlna/play', (req, res) => {
     }
 
     const localIp = getLocalIpAddress();
-    // DLNA 기기가 스트리밍 받을 수 있는 로컬 네트워크 URL 생성
     const mediaUrl = `http://${localIp}:${PORT}/api/stream?path=${encodeURIComponent(trackPath)}`;
 
-    console.log(`[DLNA] 전송 시작 -> ${deviceName}: ${mediaUrl}`);
-
-    // DLNA 기기로 음원 재생 명령 전송
     player.play(mediaUrl, {
         title: title || 'Omni Music',
         type: 'audio/mp3'
     }, (err) => {
         if (err) {
-            console.error('[DLNA] 재생 실패:', err);
             return res.status(500).json({ error: 'DLNA 재생 실패', detail: err.message });
         }
         res.json({ success: true, message: `${deviceName}에서 재생을 시작합니다.` });
     });
 });
 
-// 4. DLNA 재생 정지 API
-app.post('/api/dlna/stop', (req, res) => {
-    const { deviceName } = req.body;
-    const player = dlnaDevices.get(deviceName);
-
-    if (!player) {
-        return res.status(404).json({ error: '해당 DLNA 기기를 찾을 수 없습니다.' });
-    }
-
-    player.stop((err) => {
-        if (err) {
-            return res.status(500).json({ error: 'DLNA 정지 실패' });
-        }
-        res.json({ success: true, message: `${deviceName} 재생을 중지했습니다.` });
-    });
-});
-
-// 5. 기본 음악 폴더 및 특정 경로 스캔 API
-app.get('/api/scan-local', (req, res) => {
+// 3. 로컬 음원 폴더 스캔 및 태그/앨범 정보 추출 API
+app.get('/api/scan-local', async (req, res) => {
     const targetDir = req.query.path || path.join(os.homedir(), 'Music');
     if (!fs.existsSync(targetDir)) {
         return res.status(404).json({ error: '경로가 존재하지 않습니다.', path: targetDir });
     }
-    const files = scanDirectory(targetDir);
-    res.json({ targetDir, files });
+
+    const rawFilePaths = scanDirectory(targetDir);
+    const filesWithMeta = [];
+
+    // 파일별 메타데이터 병렬 비동기 파싱
+    for (const fullPath of rawFilePaths) {
+        const ext = path.extname(fullPath).toLowerCase();
+        const baseTitle = path.basename(fullPath, ext);
+        
+        let title = baseTitle;
+        let artist = '알 수 없는 아티스트';
+        let album = '알 수 없는 앨범';
+        let hasCover = false;
+
+        try {
+            // 태그 정보 파싱
+            const metadata = await mm.parseFile(fullPath, { skipCovers: false });
+            if (metadata.common) {
+                if (metadata.common.title) title = metadata.common.title;
+                if (metadata.common.artist) artist = metadata.common.artist;
+                if (metadata.common.album) album = metadata.common.album;
+                if (metadata.common.picture && metadata.common.picture.length > 0) {
+                    hasCover = true;
+                }
+            }
+        } catch (e) {
+            // 태그 읽기 실패 시 기본 파일명 사용
+        }
+
+        filesWithMeta.push({
+            id: fullPath,
+            title: title,
+            artist: artist,
+            album: album,
+            fileName: path.basename(fullPath),
+            fullPath: fullPath,
+            hasCover: hasCover,
+            coverUrl: hasCover ? `/api/cover?path=${encodeURIComponent(fullPath)}` : null,
+            type: 'local'
+        });
+    }
+
+    res.json({ targetDir, files: filesWithMeta });
 });
 
-// 6. 로컬 음원 스트리밍 API (DLNA 기기 및 브라우저 공통 지원)
+// 4. 음원 앨범 커버 이미지 추출 및 응답 엔드포인트
+app.get('/api/cover', async (req, res) => {
+    const filePath = req.query.path;
+    if (!filePath || !fs.existsSync(filePath)) {
+        return res.status(404).send('음원 파일을 찾을 수 없습니다.');
+    }
+
+    try {
+        const metadata = await mm.parseFile(filePath, { skipCovers: false });
+        if (metadata.common && metadata.common.picture && metadata.common.picture.length > 0) {
+            const pic = metadata.common.picture[0];
+            res.set('Content-Type', pic.format);
+            // 브라우저 캐싱 1시간 설정
+            res.set('Cache-Control', 'public, max-age=3600');
+            return res.send(pic.data);
+        }
+    } catch (e) {
+        console.error('커버 이미지 추출 오류:', e);
+    }
+    res.status(404).send('앨범 이미지가 없습니다.');
+});
+
+// 5. 로컬 음원 스트리밍 API
 app.get('/api/stream', (req, res) => {
     const filePath = req.query.path;
     if (!filePath || !fs.existsSync(filePath)) {
@@ -165,7 +199,6 @@ app.get('/api/stream', (req, res) => {
     const fileSize = stat.size;
     const range = req.headers.range;
 
-    // HTTP Range 요청 처리 (스트리밍 및 탐색 지원)
     if (range) {
         const parts = range.replace(/bytes=/, "").split("-");
         const start = parseInt(parts[0], 10);
@@ -190,20 +223,20 @@ app.get('/api/stream', (req, res) => {
     }
 });
 
-// 7. 자주 듣는 음악 및 즐겨찾기 조회 API
+// 6. 자주 듣는 음악 및 즐겨찾기 조회 API
 app.get('/api/stats', (req, res) => {
     const data = loadUserData();
     res.json(data);
 });
 
-// 8. 음원 재생 시 재생 횟수 누적 API
+// 7. 음원 재생 시 재생 횟수 누적 API
 app.post('/api/play-count', (req, res) => {
-    const { id, title, type, source } = req.body;
+    const { id, title, artist, album, type, source, coverUrl } = req.body;
     if (!id) return res.status(400).send('ID가 필요합니다.');
 
     const data = loadUserData();
     if (!data.playCounts[id]) {
-        data.playCounts[id] = { id, title, type, source, count: 0 };
+        data.playCounts[id] = { id, title, artist, album, type, source, coverUrl, count: 0 };
     }
     data.playCounts[id].count += 1;
     saveUserData(data);
@@ -211,7 +244,7 @@ app.post('/api/play-count', (req, res) => {
     res.json({ success: true, item: data.playCounts[id] });
 });
 
-// 9. 즐겨찾기 토글 API
+// 8. 즐겨찾기 토글 API
 app.post('/api/favorites/toggle', (req, res) => {
     const { item } = req.body;
     if (!item || !item.id) return res.status(400).send('항목이 올바르지 않습니다.');

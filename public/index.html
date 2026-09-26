@@ -147,10 +147,17 @@
     <!-- 하단 통합 플레이어 바 -->
     <footer class="player-bar">
         <div class="track-info">
-            <div class="track-badge" id="player-source-badge">LOCAL</div>
+            <div class="cover-wrapper">
+                <img id="player-cover" src="" alt="Album Cover" class="player-cover-img" style="display: none;">
+                <div id="player-cover-fallback" class="player-cover-fallback"><i class="fa-solid fa-music"></i></div>
+            </div>
             <div class="track-text">
-                <h4 id="player-title">선택된 곡 없음</h4>
+                <div class="title-row">
+                    <span class="track-badge" id="player-source-badge">LOCAL</span>
+                    <h4 id="player-title">선택된 곡 없음</h4>
+                </div>
                 <p id="player-sub">재생할 곡을 선택해주세요</p>
+                <p id="player-album" class="album-info"></p>
             </div>
             <button class="icon-btn" id="btn-favorite-toggle" title="즐겨찾기 추가/해제">
                 <i class="fa-regular fa-heart"></i>

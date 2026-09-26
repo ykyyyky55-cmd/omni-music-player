@@ -9,6 +9,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "dlnacasts2": "^0.2.0",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "music-metadata": "^7.14.0"
   }
 }

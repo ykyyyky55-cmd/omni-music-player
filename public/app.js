@@ -10,6 +10,9 @@ let isYtReady = false;
 const audioPlayer = document.getElementById('audio-player');
 const playerTitle = document.getElementById('player-title');
 const playerSub = document.getElementById('player-sub');
+const playerAlbum = document.getElementById('player-album');
+const playerCover = document.getElementById('player-cover');
+const playerCoverFallback = document.getElementById('player-cover-fallback');
 const playerSourceBadge = document.getElementById('player-source-badge');
 const btnPlayPause = document.getElementById('btn-play-pause');
 const btnPrev = document.getElementById('btn-prev');
@@ -83,6 +86,9 @@ document.getElementById('btn-scan').addEventListener('click', async () => {
             renderTrackList('local-track-list', data.files.map(f => ({
                 id: f.fullPath,
                 title: f.title,
+                artist: f.artist,
+                album: f.album,
+                coverUrl: f.coverUrl,
                 type: 'local',
                 source: f.fullPath
             })));
@@ -97,7 +103,6 @@ document.getElementById('btn-add-stream').addEventListener('click', () => {
     const urlInput = document.getElementById('stream-url-input').value.trim();
     if (!urlInput) return;
 
-    // 유튜브 비디오 ID 파싱 (단축 링크, 일반 링크 대응)
     let videoId = urlInput;
     const match = urlInput.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
     if (match && match[1]) {
@@ -107,6 +112,9 @@ document.getElementById('btn-add-stream').addEventListener('click', () => {
     const track = {
         id: videoId,
         title: `YouTube 음원 (${videoId})`,
+        artist: 'YouTube',
+        album: '온라인 스트리밍',
+        coverUrl: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
         type: 'youtube',
         source: videoId
     };
@@ -133,11 +141,21 @@ function renderTrackList(elementId, tracks) {
 
         const badgeClass = track.type === 'local' ? 'badge-local' : 'badge-youtube';
         const countInfo = track.count ? `<span class="play-count-tag"><i class="fa-solid fa-headphones"></i> ${track.count}회</span>` : '';
+        const artistText = track.artist ? `<span class="track-artist">${track.artist}</span>` : '';
+
+        // 앨범 커버 이미지 또는 기본 썸네일
+        const coverHtml = track.coverUrl
+            ? `<img src="${track.coverUrl}" class="track-thumb" alt="Cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="track-thumb-fallback" style="display:none;"><i class="fa-solid fa-music"></i></div>`
+            : `<div class="track-thumb-fallback"><i class="fa-solid fa-music"></i></div>`;
 
         item.innerHTML = `
             <div class="track-details">
+                ${coverHtml}
+                <div class="track-meta">
+                    <span class="track-name">${track.title}</span>
+                    ${artistText}
+                </div>
                 <span class="track-play-badge ${badgeClass}">${track.type}</span>
-                <span class="track-name">${track.title}</span>
             </div>
             <div>
                 ${countInfo}
@@ -154,13 +172,28 @@ function renderTrackList(elementId, tracks) {
     });
 }
 
-// 6. 음원 재생 코어 함수 (로컬/유튜브 분기 처리)
+// 6. 음원 재생 코어 함수 (앨범 아트 및 정보 바인딩)
 async function playTrack(track) {
     currentTrack = track;
-    playerTitle.textContent = track.title;
-    playerSub.textContent = track.type === 'local' ? '내 컴퓨터 로컬 파일' : '유튜브 스트리밍';
+    playerTitle.textContent = track.title || '알 수 없는 곡';
+    playerSub.textContent = track.artist ? track.artist : (track.type === 'local' ? '내 컴퓨터 로컬 파일' : '유튜브 스트리밍');
+    playerAlbum.textContent = track.album ? `앨범: ${track.album}` : '';
     playerSourceBadge.textContent = track.type.toUpperCase();
     playerSourceBadge.className = `track-badge ${track.type === 'local' ? 'badge-local' : 'badge-youtube'}`;
+
+    // 앨범 커버 이미지 바인딩
+    if (track.coverUrl) {
+        playerCover.src = track.coverUrl;
+        playerCover.style.display = 'block';
+        playerCoverFallback.style.display = 'none';
+        playerCover.onerror = () => {
+            playerCover.style.display = 'none';
+            playerCoverFallback.style.display = 'flex';
+        };
+    } else {
+        playerCover.style.display = 'none';
+        playerCoverFallback.style.display = 'flex';
+    }
 
     // 재생 횟수 기록
     fetch('/api/play-count', {
@@ -172,7 +205,6 @@ async function playTrack(track) {
     checkFavoriteStatus(track.id);
 
     if (track.type === 'local') {
-        // 유튜브 일시정지 후 로컬 오디오 재생
         if (ytPlayer && isYtReady && ytPlayer.pauseVideo) {
             ytPlayer.pauseVideo();
         }
@@ -180,7 +212,6 @@ async function playTrack(track) {
         audioPlayer.play();
         isPlaying = true;
     } else if (track.type === 'youtube') {
-        // 로컬 오디오 일시정지 후 유튜브 재생
         audioPlayer.pause();
         if (ytPlayer && isYtReady) {
             ytPlayer.loadVideoById(track.source);
@@ -332,6 +363,9 @@ defaultSuggestions.forEach(item => {
         playTrack({
             id: item.id,
             title: item.title,
+            artist: 'YouTube 추천',
+            album: item.desc,
+            coverUrl: `https://img.youtube.com/vi/${item.id}/hqdefault.jpg`,
             type: 'youtube',
             source: item.id
         });
