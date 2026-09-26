@@ -91,6 +91,22 @@
                             <h1 id="hero-title" class="hero-title">음악을 선택해주세요</h1>
                             <h3 id="hero-artist" class="hero-artist">아티스트</h3>
                             <p id="hero-album" class="hero-album">앨범 정보</p>
+                            <!-- 상시 노출 아날로그 사운드 조절바 및 ON/OFF 버튼 -->
+                            <div class="analog-sound-quick-bar">
+                                <div class="quick-sound-left">
+                                    <button class="analog-toggle-pill active" id="btn-quick-analog-toggle" title="아날로그 LP 사운드 켜기/끄기">
+                                        <i class="fa-solid fa-compact-disc"></i>
+                                        <span id="quick-analog-status-text">LP 사운드 ON</span>
+                                    </button>
+                                </div>
+                                <div class="quick-sound-slider-group">
+                                    <div class="slider-header">
+                                        <span><i class="fa-solid fa-volume-low"></i> LP 사운드 세기</span>
+                                        <span id="quick-crackle-label" class="val-text">35%</span>
+                                    </div>
+                                    <input type="range" id="quick-crackle-slider" min="0" max="1" step="0.05" value="0.35" title="아날로그 바늘 잡음 세기 조절">
+                                </div>
+                            </div>
 
                             <!-- 중앙 플레이어 컨트롤 버튼 -->
                             <div class="hero-controls">
@@ -265,6 +281,10 @@
         </div>
 
         <div class="player-extras">
+            <!-- 아날로그 LP 사운드 즉시 토글 버튼 -->
+            <button class="icon-btn active" id="btn-bottom-analog-toggle" title="아날로그 LP 사운드 켜기/끄기">
+                <i class="fa-solid fa-compact-disc"></i>
+            </button>
             <!-- DLNA 캐스팅 버튼 -->
             <button class="icon-btn" id="btn-dlna-modal" title="DLNA 기기로 전송 (스마트TV/오디오)">
                 <i class="fa-solid fa-satellite-dish"></i>

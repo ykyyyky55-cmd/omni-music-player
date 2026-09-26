@@ -56,6 +56,13 @@ const sliderCrackleVol = document.getElementById('slider-crackle-vol');
 const crackleVolLabel = document.getElementById('crackle-vol-label');
 const toggleWarmEq = document.getElementById('toggle-warm-eq');
 
+// 상시 노출 아날로그 사운드 조절바 및 버튼 요소
+const btnQuickAnalogToggle = document.getElementById('btn-quick-analog-toggle');
+const quickAnalogStatusText = document.getElementById('quick-analog-status-text');
+const quickCrackleSlider = document.getElementById('quick-crackle-slider');
+const quickCrackleLabel = document.getElementById('quick-crackle-label');
+const btnBottomAnalogToggle = document.getElementById('btn-bottom-analog-toggle');
+
 // RPM 상태 관리 (기본 33 RPM: 1.8초, 45 RPM: 1.33초)
 let currentRpm = 33;
 let currentRpmDuration = '1.8s';
@@ -458,18 +465,74 @@ btnApplySound.addEventListener('click', () => {
     soundModal.classList.remove('open');
 });
 
-toggleCrackle.addEventListener('change', () => {
-    if (isPlaying) {
-        toggleCrackle.checked ? startVinylCrackle() : stopVinylCrackle();
+// 아날로그 바이닐 사운드 ON/OFF 일괄 토글 및 UI 동기화 함수
+function setAnalogSoundState(enabled) {
+    if (toggleCrackle) toggleCrackle.checked = enabled;
+    if (btnQuickAnalogToggle) {
+        btnQuickAnalogToggle.classList.toggle('active', enabled);
     }
+    if (quickAnalogStatusText) {
+        quickAnalogStatusText.textContent = enabled ? 'LP 사운드 ON' : 'LP 사운드 OFF';
+    }
+    if (btnBottomAnalogToggle) {
+        btnBottomAnalogToggle.classList.toggle('active', enabled);
+    }
+
+    if (isPlaying) {
+        if (enabled) {
+            startVinylCrackle();
+        } else {
+            stopVinylCrackle();
+        }
+    }
+}
+
+// 아날로그 크랙클 볼륨 일괄 업데이트 및 UI 동기화 함수
+function setAnalogCrackleVolume(val) {
+    const clampedVal = Math.max(0, Math.min(1, parseFloat(val)));
+    const percentText = `${Math.round(clampedVal * 100)}%`;
+
+    if (sliderCrackleVol) sliderCrackleVol.value = clampedVal;
+    if (crackleVolLabel) crackleVolLabel.textContent = percentText;
+    if (quickCrackleSlider) quickCrackleSlider.value = clampedVal;
+    if (quickCrackleLabel) quickCrackleLabel.textContent = percentText;
+
+    if (crackleGain && isPlaying && toggleCrackle && toggleCrackle.checked) {
+        crackleGain.gain.cancelScheduledValues(audioCtx.currentTime);
+        crackleGain.gain.setValueAtTime(clampedVal, audioCtx.currentTime);
+    }
+}
+
+// 상시 빠른 토글 버튼 클릭 이벤트
+if (btnQuickAnalogToggle) {
+    btnQuickAnalogToggle.addEventListener('click', () => {
+        const nextState = !(toggleCrackle && toggleCrackle.checked);
+        setAnalogSoundState(nextState);
+    });
+}
+
+// 하단 플레이어 바 토글 버튼 클릭 이벤트
+if (btnBottomAnalogToggle) {
+    btnBottomAnalogToggle.addEventListener('click', () => {
+        const nextState = !(toggleCrackle && toggleCrackle.checked);
+        setAnalogSoundState(nextState);
+    });
+}
+
+// 상시 빠른 볼륨 슬라이더 조절 이벤트
+if (quickCrackleSlider) {
+    quickCrackleSlider.addEventListener('input', (e) => {
+        setAnalogCrackleVolume(e.target.value);
+    });
+}
+
+// 설정 모달 내 체크박스 및 볼륨 조절 이벤트 연동
+toggleCrackle.addEventListener('change', () => {
+    setAnalogSoundState(toggleCrackle.checked);
 });
 
-sliderCrackleVol.addEventListener('input', () => {
-    const val = parseFloat(sliderCrackleVol.value);
-    crackleVolLabel.textContent = `${Math.round(val * 100)}%`;
-    if (crackleGain && isPlaying && toggleCrackle.checked) {
-        crackleGain.gain.setValueAtTime(val, audioCtx.currentTime);
-    }
+sliderCrackleVol.addEventListener('input', (e) => {
+    setAnalogCrackleVolume(e.target.value);
 });
 
 toggleWarmEq.addEventListener('change', () => {
