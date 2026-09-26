@@ -30,37 +30,31 @@
         <main class="main-content">
             <!-- 탭 0: 지금 재생 중 전용 화면 -->
             <section id="tab-nowplaying" class="tab-pane active nowplaying-pane">
-                <!-- 가운데 LP 턴테이블 & 우측 앨범자켓 창 -->
+                <!-- 가운데 LP 턴테이블 & 우측 앨범자켓 창 (4배 대형 실물 턴테이블 모드) -->
                 <div class="nowplaying-hero turntable-mode">
-                    <!-- 1. 좌측/중앙: LP 턴테이블 본체 -->
-                    <div class="turntable-deck">
-                        <!-- 턴테이블 회전 플래터 -->
-                        <div class="turntable-platter">
-                            <!-- LP 바이닐 레코드판 (회전 애니메이션 대상) -->
-                            <div class="vinyl-record" id="vinyl-record">
-                                <div class="vinyl-groove-lines"></div>
-                                <div class="vinyl-label" id="vinyl-label">
-                                    <img id="vinyl-label-img" src="" alt="Label" style="display: none;">
-                                    <div id="vinyl-label-fallback"><i class="fa-solid fa-music"></i></div>
-                                </div>
-                                <div class="vinyl-hole"></div>
+                    <!-- 1. 좌측/중앙: 실제 이미지 기반 4배 대형 턴테이블 -->
+                    <div class="turntable-deck-large">
+                        <!-- 실제 턴테이블 배경 베이스 이미지 -->
+                        <img src="turntable_base.png" alt="Turntable Deck" class="turntable-bg-img">
+
+                        <!-- 플래터 위에 얹어지는 LP 바이닐 레코드판 (회전 애니메이션) -->
+                        <div class="vinyl-record-large" id="vinyl-record">
+                            <div class="vinyl-groove-lines"></div>
+                            <div class="vinyl-reflection"></div>
+                            <div class="vinyl-label" id="vinyl-label">
+                                <img id="vinyl-label-img" src="" alt="Label" style="display: none;">
+                                <div id="vinyl-label-fallback"><i class="fa-solid fa-music"></i></div>
                             </div>
+                            <div class="vinyl-hole"></div>
                         </div>
 
-                        <!-- 톤암 (회전하여 LP 위로 올라가는 바늘 부품) -->
-                        <div class="tonearm-assembly" id="tonearm-assembly">
-                            <div class="tonearm-base"></div>
-                            <div class="tonearm-pivot"></div>
-                            <div class="tonearm-body">
-                                <div class="tonearm-rod"></div>
-                                <div class="tonearm-headshell">
-                                    <div class="tonearm-cartridge"></div>
-                                </div>
-                            </div>
+                        <!-- 턴테이블 톤암 레이어 (피벗 중심 회전 모션) -->
+                        <div class="tonearm-overlay" id="tonearm-assembly">
+                            <img src="tonearm.png" alt="Tonearm" class="tonearm-img">
                         </div>
 
-                        <!-- 턴테이블 전원 인디케이터 램프 -->
-                        <div class="turntable-lamp" id="turntable-lamp"></div>
+                        <!-- 턴테이블 전원 LED 인디케이터 -->
+                        <div class="turntable-led" id="turntable-lamp"></div>
                     </div>
 
                     <!-- 2. 우측: 3D 앨범자켓 스탠드 및 곡 정보 -->
@@ -75,7 +69,7 @@
 
                         <div class="hero-details">
                             <div class="hero-badge-wrap">
-                                <span class="track-badge badge-local" id="hero-source-badge">VINYL READY</span>
+                                <span class="track-badge badge-local" id="hero-source-badge">VINYL HI-FI</span>
                             </div>
                             <h1 id="hero-title" class="hero-title">음악을 선택해주세요</h1>
                             <h3 id="hero-artist" class="hero-artist">아티스트</h3>
